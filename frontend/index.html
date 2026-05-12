@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pi Arcade</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Pi Arcade</h1>
+    <input type="search" id="search" placeholder="Search games..." autocomplete="off" autofocus>
+    <div class="status" id="status">Loading...</div>
+  </header>
+
+  <main>
+    <section id="top10-section" hidden>
+      <h2>★ Top 10 Most Played</h2>
+      <div id="top10" class="grid grid-top"></div>
+    </section>
+
+    <section>
+      <h2 id="all-heading">All Games (A–Z)</h2>
+      <div id="grid" class="grid"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

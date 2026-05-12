@@ -1,0 +1,21 @@
+# ROMs are user-supplied, never commit copyrighted content
+roms/nes/*.nes
+roms/snes/*.sfc
+roms/snes/*.smc
+roms/ps1/*.chd
+roms/ps1/*.bin
+roms/ps1/*.cue
+
+# PS1 BIOS (when added later)
+bios/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Editor noise
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

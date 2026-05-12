@@ -1,0 +1,19 @@
+{
+  "_comment": "Optional overrides. The launcher auto-scans roms/nes/ and shows every .nes file using a cleaned-up filename as the title. Add an entry here only if you want a custom title or description for a specific ROM. Match `rom` to the exact filename in roms/nes/.",
+  "games": [
+    {
+      "rom": "Mike Tyson's Punch-Out!! (U) (PRG1).nes",
+      "title": "Mike Tyson's Punch-Out!!",
+      "description": "Boxing classic."
+    },
+    {
+      "rom": "Legend of Zelda, The (U) (PRG1).nes",
+      "title": "The Legend of Zelda",
+      "description": "Top-down adventure original."
+    },
+    {
+      "rom": "Contra (U).nes",
+      "description": "Up up down down left right left right B A start."
+    }
+  ]
+}
