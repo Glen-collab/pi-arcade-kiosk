@@ -23,11 +23,16 @@ function makeTile(game, opts = {}) {
   return tile;
 }
 
+// Top section size — show up to 25 most-played. Glen's gym kiosk has
+// 800+ NES + 461 SNES ROMs total, so the popular ones surface naturally
+// via play count rather than pre-curated lists. Most-played fills out
+// quickly once a few sessions are logged.
+const TOP_SECTION_SIZE = 25;
 function renderTop10() {
   const ranked = allGames
     .filter(g => g.plays > 0)
     .sort((a, b) => b.plays - a.plays || a.title.localeCompare(b.title))
-    .slice(0, 10);
+    .slice(0, TOP_SECTION_SIZE);
   top10Grid.innerHTML = "";
   if (!ranked.length) {
     top10Section.hidden = true;
