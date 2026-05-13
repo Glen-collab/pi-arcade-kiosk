@@ -29,9 +29,12 @@ PLAYS_FILE = os.path.join(PROJECT_DIR, "backend", "plays.json")
 ROMS_DIR = os.path.join(PROJECT_DIR, "roms")
 
 ALLOWED_SYSTEMS = {"nes", "snes"}
+# Both Nestopia and snes9x read zip-wrapped ROMs directly, which is the
+# common distribution format. Accept zips per-system so a .zip dropped
+# in roms/snes/ scans into the SNES picker even without extraction.
 ROM_EXTS = {
-    "nes":  (".nes",),
-    "snes": (".smc", ".sfc"),
+    "nes":  (".nes",  ".zip"),
+    "snes": (".smc", ".sfc", ".zip"),
 }
 
 # How /api/exit-to-workouts syncs state back to the BSA platform so the
