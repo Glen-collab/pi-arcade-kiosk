@@ -23,8 +23,10 @@ if [ ! -f "$ROM_PATH" ]; then
 fi
 
 # Map system → core name. Add PS1 here when scope grows.
+# Nestopia for NES — Trixie/Bookworm no longer ship libretro-fceumm.
+# Nestopia is actually higher-accuracy than FCEUmm anyway.
 case "$SYSTEM" in
-  nes)  CORE_NAME="fceumm" ;;
+  nes)  CORE_NAME="nestopia" ;;
   snes) CORE_NAME="snes9x" ;;
   *)    echo "Unknown system: $SYSTEM"; exit 1 ;;
 esac
