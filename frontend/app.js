@@ -4,6 +4,19 @@ const top10Section = document.getElementById("top10-section");
 const status = document.getElementById("status");
 const search = document.getElementById("search");
 const allHeading = document.getElementById("all-heading");
+const exitTile = document.getElementById("exit-tile");
+const systemPill = document.getElementById("system-pill");
+
+// The BSA kiosk admin picks NES or SNES; that decision is encoded in
+// the URL the Pi's Chromium opens (?system=nes|snes). When set, we
+// scope every API call to that library so the user only sees games for
+// the system they picked.
+const systemFilter = (new URLSearchParams(window.location.search).get("system") || "").toLowerCase();
+if (systemFilter === "nes" || systemFilter === "snes") {
+  systemPill.textContent = systemFilter.toUpperCase();
+  systemPill.hidden = false;
+  document.body.classList.add(`system-${systemFilter}`);
+}
 
 let allGames = [];
 
@@ -23,11 +36,11 @@ function makeTile(game, opts = {}) {
   return tile;
 }
 
-// Top section size — show up to 25 most-played. Glen's gym kiosk has
+// Top section size — show up to 20 most-played. Glen's gym kiosk has
 // 800+ NES + 461 SNES ROMs total, so the popular ones surface naturally
 // via play count rather than pre-curated lists. Most-played fills out
 // quickly once a few sessions are logged.
-const TOP_SECTION_SIZE = 25;
+const TOP_SECTION_SIZE = 20;
 function renderTop10() {
   const ranked = allGames
     .filter(g => g.plays > 0)
@@ -90,7 +103,8 @@ async function launch(game) {
 async function load() {
   status.textContent = "Loading...";
   try {
-    const res = await fetch("/api/games");
+    const url = systemFilter ? `/api/games?system=${encodeURIComponent(systemFilter)}` : "/api/games";
+    const res = await fetch(url);
     const data = await res.json();
     allGames = data.games || [];
     status.textContent = `${allGames.length} games`;
@@ -100,6 +114,19 @@ async function load() {
     status.textContent = `Failed to load: ${err.message}`;
   }
 }
+
+async function exitToWorkouts() {
+  exitTile.disabled = true;
+  status.textContent = "Returning to workouts...";
+  try {
+    await fetch("/api/exit-to-workouts", { method: "POST" });
+    // No need to re-enable — the Pi-side script will kill this page.
+  } catch (err) {
+    status.textContent = `Exit failed: ${err.message}`;
+    exitTile.disabled = false;
+  }
+}
+exitTile.addEventListener("click", exitToWorkouts);
 
 let searchTimer = null;
 search.addEventListener("input", () => {

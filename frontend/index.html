@@ -8,12 +8,19 @@
 </head>
 <body>
   <header>
-    <h1>Pi Arcade</h1>
+    <h1>Pi Arcade <span id="system-pill" class="system-pill" hidden></span></h1>
     <input type="search" id="search" placeholder="Search games..." autocomplete="off" autofocus>
     <div class="status" id="status">Loading...</div>
   </header>
 
   <main>
+    <section id="exit-section">
+      <button id="exit-tile" class="tile exit-tile">
+        <span class="exit-arrow">←</span>
+        <span class="tile-title">Back to Workouts</span>
+      </button>
+    </section>
+
     <section id="top10-section" hidden>
       <h2>★ Most Played</h2>
       <div id="top10" class="grid grid-top"></div>

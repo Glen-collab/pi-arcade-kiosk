@@ -22,9 +22,10 @@ if [ ! -f "$ROM_PATH" ]; then
   exit 1
 fi
 
-# Map system → core name. Add SNES/PS1 here when scope grows.
+# Map system → core name. Add PS1 here when scope grows.
 case "$SYSTEM" in
   nes)  CORE_NAME="fceumm" ;;
+  snes) CORE_NAME="snes9x" ;;
   *)    echo "Unknown system: $SYSTEM"; exit 1 ;;
 esac
 
