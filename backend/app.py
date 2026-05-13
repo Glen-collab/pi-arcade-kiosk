@@ -171,6 +171,16 @@ def launch():
     return jsonify({"ok": True, "plays": new_count})
 
 
+@app.route("/api/status")
+def status_endpoint():
+    """Returns { playing: bool, rom: str|None } so the picker JS can
+    detect when retroarch dies (user pressed F4 on an attract-mode
+    demo) and reset its idle timer accordingly."""
+    global current_proc
+    playing = current_proc is not None and current_proc.poll() is None
+    return jsonify({"playing": playing})
+
+
 @app.route("/api/quit", methods=["POST"])
 def quit_game():
     global current_proc

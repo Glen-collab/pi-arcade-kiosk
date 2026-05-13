@@ -289,4 +289,71 @@ search.addEventListener("input", () => {
   }, 80);
 });
 
+// ── Attract mode ──────────────────────────────────────────────
+// Idle picker → auto-launch a demo game (real arcade behavior). Cycles
+// through a curated list of games with built-in attract sequences, so
+// the gym TV always feels alive. Any input (key / gamepad / mouse) on
+// the picker resets the idle timer. When retroarch dies (F4 quit), the
+// picker is back in focus and the timer resets fresh too — so a user
+// gets 30s of grace to start picking before the next demo fires.
+const IDLE_ATTRACT_MS = 30000;
+const ATTRACT_DEMOS = {
+  nes: [
+    { rom: "Contra (U).nes" },
+    { rom: "Super Mario Bros - Duck Hunt (U).nes" },
+    { rom: "Pac-Man (U) [!].nes" },
+    { rom: "Mega Man 2 (U).nes" },
+    { rom: "Donkey Kong Classics (U).nes" },
+    { rom: "Tetris (U) [!].nes" },
+  ],
+  snes: [
+    { rom: "Super Mario All-Stars + Super Mario World (U) [!].zip" },
+    { rom: "Donkey Kong Country (U) (V1.2) [!].zip" },
+    { rom: "Street Fighter II - The World Warrior (U) [!].zip" },
+    { rom: "Chrono Trigger (U) [!].zip" },
+    { rom: "Super Metroid (JU) [!].zip" },
+    { rom: "Killer Instinct (U) (V1.1) [!].zip" },
+  ],
+};
+let lastInput = Date.now();
+let attractIdx = 0;
+let wasPlaying = false;
+
+function noteInput() { lastInput = Date.now(); }
+document.addEventListener("keydown",   noteInput, { capture: true });
+document.addEventListener("mousemove", noteInput, { capture: true });
+document.addEventListener("mousedown", noteInput, { capture: true });
+
+async function isPlaying() {
+  try {
+    const r = await fetch("/api/status");
+    return (await r.json()).playing;
+  } catch { return false; }
+}
+
+setInterval(async () => {
+  const playing = await isPlaying();
+  // User just exited a game (or attract demo) — start a fresh idle
+  // countdown instead of immediately blasting the next demo.
+  if (wasPlaying && !playing) lastInput = Date.now();
+  wasPlaying = playing;
+  if (playing) return;
+
+  if (Date.now() - lastInput < IDLE_ATTRACT_MS) return;
+
+  const sys = systemFilter === "snes" ? "snes" : "nes";
+  const pool = ATTRACT_DEMOS[sys] || [];
+  if (!pool.length) return;
+  const pick = pool[attractIdx % pool.length];
+  attractIdx++;
+  status.textContent = `DEMO MODE - F4 OR ENTER TO PLAY`;
+  try {
+    await fetch("/api/launch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ system: sys, rom: pick.rom }),
+    });
+  } catch {}
+}, 5000);
+
 load();
