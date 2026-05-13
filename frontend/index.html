@@ -4,33 +4,43 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pi Arcade</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div class="scanlines"></div>
   <header>
-    <h1>Pi Arcade <span id="system-pill" class="system-pill" hidden></span></h1>
-    <input type="search" id="search" placeholder="Search games..." autocomplete="off" autofocus>
-    <div class="status" id="status">Loading...</div>
+    <h1>PI ARCADE <span id="system-pill" class="system-pill" hidden></span></h1>
+    <input type="search" id="search" placeholder="SEARCH..." autocomplete="off">
+    <div class="status" id="status">LOADING...</div>
   </header>
 
   <main>
     <section id="exit-section">
-      <button id="exit-tile" class="tile exit-tile">
-        <span class="exit-arrow">←</span>
-        <span class="tile-title">Back to Workouts</span>
+      <button id="exit-tile" class="tile exit-tile" data-nav="0">
+        <span class="exit-arrow">&lt;</span>
+        <span class="tile-title">BACK TO WORKOUTS</span>
       </button>
     </section>
 
     <section id="top10-section" hidden>
-      <h2>★ Most Played</h2>
+      <h2>&#9733; MOST PLAYED</h2>
       <div id="top10" class="grid grid-top"></div>
     </section>
 
     <section>
-      <h2 id="all-heading">All Games (A–Z)</h2>
+      <h2 id="all-heading">ALL GAMES</h2>
       <div id="grid" class="grid"></div>
     </section>
   </main>
+
+  <div class="hint">
+    <span>&#8593;&#8595;&#8592;&#8594; or D-PAD = move</span>
+    <span>ENTER or A = play</span>
+    <span>ESC or B = back</span>
+  </div>
 
   <script src="app.js"></script>
 </body>

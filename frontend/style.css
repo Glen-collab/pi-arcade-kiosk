@@ -1,213 +1,249 @@
+/* Pi Arcade — old-school cabinet styling.
+   "Press Start 2P" for tile titles + headers. VT323 for body chrome.
+   Sized for TV viewing (4-6 ft); tiles big enough that a casual
+   glance picks out the game. CRT-flicker scanline overlay sells the
+   arcade vibe without hurting readability. */
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+:root {
+  --accent: #ff2f44;
+  --accent-glow: 0 0 12px rgba(255, 47, 68, 0.65), 0 0 24px rgba(255, 47, 68, 0.35);
+  --focus-glow: 0 0 0 3px var(--accent), 0 0 18px rgba(255, 47, 68, 0.9), 0 0 36px rgba(255, 47, 68, 0.5);
+}
+
+body.system-snes {
+  --accent: #b88dff;
+  --accent-glow: 0 0 12px rgba(184, 141, 255, 0.65), 0 0 24px rgba(184, 141, 255, 0.35);
+  --focus-glow: 0 0 0 3px var(--accent), 0 0 18px rgba(184, 141, 255, 0.9), 0 0 36px rgba(184, 141, 255, 0.5);
+}
+
 body {
-  background: #0a0a0a;
-  color: #fff;
-  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  background:
+    radial-gradient(ellipse at top, #1a0a14 0%, #060108 60%) fixed,
+    #000;
+  color: #f5f5ff;
+  font-family: 'VT323', 'Courier New', monospace;
   min-height: 100vh;
-  padding: 24px;
+  padding: 18px 24px 80px;
+  font-size: 20px;
+  letter-spacing: 0.5px;
+  overflow-x: hidden;
+}
+
+/* Faint horizontal scanlines for CRT feel. Pointer-events none so it
+   never blocks clicks. */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.03) 0,
+    rgba(255, 255, 255, 0.03) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  z-index: 5;
 }
 
 header {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 24px;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 2px solid #c8102e;
+  gap: 28px;
+  margin-bottom: 22px;
+  padding: 10px 0 14px;
+  border-bottom: 2px solid var(--accent);
+  box-shadow: 0 4px 18px -10px var(--accent);
 }
 
 h1 {
-  font-size: 26px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 22px;
+  color: var(--accent);
+  text-shadow: var(--accent-glow);
   letter-spacing: 2px;
-  color: #c8102e;
-  text-transform: uppercase;
   white-space: nowrap;
 }
 
 #search {
-  background: #1a1a1a;
+  background: rgba(0, 0, 0, 0.6);
   border: 2px solid #333;
-  color: #fff;
-  font-size: 16px;
-  padding: 10px 14px;
-  border-radius: 6px;
+  color: #f5f5ff;
+  font-family: 'VT323', monospace;
+  font-size: 22px;
+  padding: 8px 14px;
+  border-radius: 4px;
   width: 100%;
-  max-width: 480px;
+  max-width: 420px;
   justify-self: center;
-  font-family: inherit;
+  letter-spacing: 2px;
 }
-
 #search:focus {
   outline: none;
-  border-color: #c8102e;
+  border-color: var(--accent);
+  box-shadow: var(--accent-glow);
 }
 
 .status {
-  font-size: 13px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
   color: #888;
   text-align: right;
-  white-space: nowrap;
+  letter-spacing: 1px;
 }
 
 h2 {
-  font-size: 16px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 13px;
+  color: var(--accent);
+  text-shadow: 0 0 8px rgba(255, 47, 68, 0.4);
   text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: #aaa;
-  margin: 28px 0 12px;
-  font-weight: 600;
+  letter-spacing: 3px;
+  margin: 24px 0 14px;
 }
-
+body.system-snes h2 { text-shadow: 0 0 8px rgba(184, 141, 255, 0.4); }
 section:first-of-type h2 { margin-top: 0; }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
-
 .grid-top {
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
 }
 
 .tile {
   position: relative;
-  background: #1a1a1a;
-  border: 2px solid #333;
-  border-radius: 8px;
-  padding: 18px 14px;
+  background: linear-gradient(180deg, #14141c 0%, #08080c 100%);
+  border: 2px solid #2a2a36;
+  border-radius: 4px;
+  padding: 22px 14px;
   cursor: pointer;
-  transition: transform 0.12s ease, border-color 0.12s, background 0.12s;
+  transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
   text-align: center;
   user-select: none;
   font-family: inherit;
   color: inherit;
   width: 100%;
-  min-height: 70px;
+  min-height: 96px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-
-.tile:hover, .tile:focus {
-  transform: translateY(-2px);
-  border-color: #c8102e;
-  background: #222;
-  outline: none;
+.tile:hover {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, #1f1320 0%, #0e0810 100%);
 }
-
-.tile:active { transform: translateY(0); }
-
-.tile.top {
-  border-color: #c8102e;
-  background: linear-gradient(135deg, #1a1a1a 0%, #2a1010 100%);
-  min-height: 90px;
+.tile.focused {
+  border-color: var(--accent);
+  box-shadow: var(--focus-glow);
+  transform: scale(1.04);
+  background: linear-gradient(180deg, #2a1220 0%, #150816 100%);
+  z-index: 2;
 }
+.tile.top { min-height: 110px; border-color: rgba(255, 47, 68, 0.4); }
+body.system-snes .tile.top { border-color: rgba(184, 141, 255, 0.4); }
 
 .tile-title {
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.3;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  line-height: 1.5;
   word-break: break-word;
+  letter-spacing: 0.5px;
 }
-
-.tile.top .tile-title {
-  font-size: 15px;
-}
+.tile.top .tile-title { font-size: 12px; }
 
 .tile-rank {
   position: absolute;
   top: 6px;
-  left: 8px;
-  font-size: 13px;
-  font-weight: 800;
-  color: #c8102e;
+  left: 10px;
+  font-family: 'VT323', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent);
+  text-shadow: 0 0 6px var(--accent);
 }
 
 .tile-plays {
   position: absolute;
-  top: 6px;
-  right: 8px;
-  font-size: 11px;
+  top: 8px;
+  right: 10px;
+  font-family: 'VT323', monospace;
+  font-size: 16px;
   color: #888;
-  font-weight: 600;
 }
-
-.tile.top .tile-plays {
-  color: #c8102e;
-}
+.tile.top .tile-plays { color: var(--accent); }
 
 .empty {
   grid-column: 1 / -1;
   text-align: center;
   padding: 48px;
-  color: #666;
-  font-size: 14px;
+  color: #555;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
 }
 
-@media (max-width: 600px) {
-  header {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  .status { text-align: left; }
-}
-
-/* Back-to-Workouts tile — full-width banner above the game grids so a
-   user with a gamepad or touch can always get out of arcade mode
-   without admin help. */
-#exit-section {
-  margin-bottom: 20px;
-}
-
+#exit-section { margin-bottom: 22px; }
 .exit-tile {
   width: 100%;
-  min-height: 80px;
-  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  min-height: 70px;
+  background: linear-gradient(135deg, #0e1530 0%, #1c2a52 100%);
   border-color: #38bdf8;
   display: flex;
-  gap: 14px;
-  font-size: 18px;
+  gap: 18px;
+  padding: 16px;
 }
-
-.exit-tile:hover, .exit-tile:focus {
+.exit-tile:hover, .exit-tile.focused {
   border-color: #0ea5e9;
-  background: linear-gradient(135deg, #1e3a5f 0%, #1e4773 100%);
+  box-shadow: 0 0 0 3px #0ea5e9, 0 0 18px rgba(14, 165, 233, 0.7), 0 0 36px rgba(14, 165, 233, 0.4);
+  transform: scale(1.02);
 }
-
 .exit-arrow {
-  font-size: 26px;
-  font-weight: 800;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 22px;
   color: #38bdf8;
+  text-shadow: 0 0 8px #38bdf8;
 }
-
 .exit-tile .tile-title {
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 14px;
+  letter-spacing: 1.5px;
 }
 
-/* System pill in the H1 — visual cue for which library is currently
-   loaded. SNES gets a purple tint, NES stays red to match Nintendo's
-   classic palette. */
 .system-pill {
   display: inline-block;
-  margin-left: 10px;
-  padding: 2px 8px;
-  font-size: 14px;
-  letter-spacing: 1px;
+  margin-left: 14px;
+  padding: 4px 10px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
   vertical-align: middle;
-  border-radius: 4px;
-  background: #c8102e;
-  color: #fff;
+  border-radius: 3px;
+  background: var(--accent);
+  color: #000;
+  text-shadow: none;
+  letter-spacing: 1px;
 }
 
-body.system-snes .system-pill { background: #6d28d9; }
-body.system-snes h1, body.system-snes header { border-color: #6d28d9; }
-body.system-snes #search:focus { border-color: #6d28d9; }
-body.system-snes .tile:hover, body.system-snes .tile:focus { border-color: #6d28d9; }
-body.system-snes .tile.top { border-color: #6d28d9; background: linear-gradient(135deg, #1a1a1a 0%, #261a3a 100%); }
-body.system-snes .tile.top .tile-plays { color: #a78bfa; }
-body.system-snes .tile-rank { color: #a78bfa; }
+.hint {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: rgba(0, 0, 0, 0.85);
+  border-top: 1px solid #222;
+  padding: 10px 24px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  color: #999;
+  letter-spacing: 1px;
+  display: flex;
+  justify-content: space-around;
+  z-index: 6;
+}
+
+@media (max-width: 700px) {
+  header { grid-template-columns: 1fr; gap: 12px; }
+  .status { text-align: left; }
+  .hint { font-size: 8px; padding: 8px 12px; gap: 8px; }
+}

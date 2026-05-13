@@ -1,16 +1,17 @@
-const allGrid = document.getElementById("grid");
-const top10Grid = document.getElementById("top10");
-const top10Section = document.getElementById("top10-section");
-const status = document.getElementById("status");
-const search = document.getElementById("search");
-const allHeading = document.getElementById("all-heading");
-const exitTile = document.getElementById("exit-tile");
-const systemPill = document.getElementById("system-pill");
+// Pi Arcade picker — old-school cabinet UX.
+// Supports keyboard arrows + Enter and the Gamepad API (D-pad + A/B).
+// Spatial navigation: ↑/↓/←/→ pick the nearest tile in that direction,
+// so the grid's column count doesn't matter and wrapping is natural.
 
-// The BSA kiosk admin picks NES or SNES; that decision is encoded in
-// the URL the Pi's Chromium opens (?system=nes|snes). When set, we
-// scope every API call to that library so the user only sees games for
-// the system they picked.
+const allGrid       = document.getElementById("grid");
+const top10Grid     = document.getElementById("top10");
+const top10Section  = document.getElementById("top10-section");
+const status        = document.getElementById("status");
+const search        = document.getElementById("search");
+const allHeading    = document.getElementById("all-heading");
+const exitTile      = document.getElementById("exit-tile");
+const systemPill    = document.getElementById("system-pill");
+
 const systemFilter = (new URLSearchParams(window.location.search).get("system") || "").toLowerCase();
 if (systemFilter === "nes" || systemFilter === "snes") {
   systemPill.textContent = systemFilter.toUpperCase();
@@ -19,6 +20,8 @@ if (systemFilter === "nes" || systemFilter === "snes") {
 }
 
 let allGames = [];
+let tiles = [];      // ordered NodeList-like array of every focusable tile
+let focusIdx = 0;    // current focused tile index
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({
@@ -29,18 +32,15 @@ function escapeHtml(s) {
 function makeTile(game, opts = {}) {
   const tile = document.createElement("button");
   tile.className = "tile" + (opts.top ? " top" : "");
-  const rank = opts.rank ? `<span class="tile-rank">#${opts.rank}</span>` : "";
-  const plays = game.plays > 0 ? `<span class="tile-plays">${game.plays}▶</span>` : "";
+  const rank  = opts.rank ? `<span class="tile-rank">${opts.rank}</span>` : "";
+  const plays = game.plays > 0 ? `<span class="tile-plays">${game.plays}</span>` : "";
   tile.innerHTML = `${rank}${plays}<div class="tile-title">${escapeHtml(game.title)}</div>`;
   tile.addEventListener("click", () => launch(game));
   return tile;
 }
 
-// Top section size — show up to 20 most-played. Glen's gym kiosk has
-// 800+ NES + 461 SNES ROMs total, so the popular ones surface naturally
-// via play count rather than pre-curated lists. Most-played fills out
-// quickly once a few sessions are logged.
 const TOP_SECTION_SIZE = 20;
+
 function renderTop10() {
   const ranked = allGames
     .filter(g => g.plays > 0)
@@ -63,20 +63,20 @@ function renderAll(query = "") {
   }
   allGrid.innerHTML = "";
   if (!list.length) {
-    allGrid.innerHTML = `<div class="empty">No games match "${escapeHtml(query)}".</div>`;
-    allHeading.textContent = "All Games (A–Z)";
+    allGrid.innerHTML = `<div class="empty">No games match "${escapeHtml(query)}"</div>`;
+    allHeading.textContent = "All Games";
     return;
   }
   allHeading.textContent = query
-    ? `Search: "${query}" (${list.length} match${list.length === 1 ? "" : "es"})`
-    : `All Games A–Z (${list.length})`;
+    ? `Search: "${query}" (${list.length})`
+    : `All Games (${list.length})`;
   const frag = document.createDocumentFragment();
   list.forEach(g => frag.appendChild(makeTile(g)));
   allGrid.appendChild(frag);
 }
 
 async function launch(game) {
-  status.textContent = `Launching ${game.title}...`;
+  status.textContent = `LAUNCHING ${game.title.toUpperCase()}...`;
   try {
     const res = await fetch("/api/launch", {
       method: "POST",
@@ -85,53 +85,208 @@ async function launch(game) {
     });
     const data = await res.json();
     if (data.ok) {
-      status.textContent = `Running ${game.title} — F4 to quit`;
+      status.textContent = `RUNNING ${game.title.toUpperCase()} - F4 TO QUIT`;
       const g = allGames.find(x => x.id === game.id);
       if (g) {
         g.plays = data.plays != null ? data.plays : (g.plays + 1);
         renderTop10();
         renderAll(search.value.trim());
+        rebuildTileList();
       }
     } else {
-      status.textContent = `Error: ${data.error || "launch failed"}`;
+      status.textContent = `ERROR: ${data.error || "launch failed"}`;
     }
   } catch (err) {
-    status.textContent = `Error: ${err.message}`;
-  }
-}
-
-async function load() {
-  status.textContent = "Loading...";
-  try {
-    const url = systemFilter ? `/api/games?system=${encodeURIComponent(systemFilter)}` : "/api/games";
-    const res = await fetch(url);
-    const data = await res.json();
-    allGames = data.games || [];
-    status.textContent = `${allGames.length} games`;
-    renderTop10();
-    renderAll();
-  } catch (err) {
-    status.textContent = `Failed to load: ${err.message}`;
+    status.textContent = `ERROR: ${err.message}`;
   }
 }
 
 async function exitToWorkouts() {
   exitTile.disabled = true;
-  status.textContent = "Returning to workouts...";
+  status.textContent = "RETURNING TO WORKOUTS...";
   try {
     await fetch("/api/exit-to-workouts", { method: "POST" });
-    // No need to re-enable — the Pi-side script will kill this page.
   } catch (err) {
-    status.textContent = `Exit failed: ${err.message}`;
+    status.textContent = `EXIT FAILED: ${err.message}`;
     exitTile.disabled = false;
   }
 }
 exitTile.addEventListener("click", exitToWorkouts);
 
+// ── Navigation ────────────────────────────────────────────────
+// Rebuilds the ordered tile list. Called after every re-render so
+// keyboard/gamepad input always sees the current grid.
+function rebuildTileList() {
+  tiles = Array.from(document.querySelectorAll(".tile"));
+  if (focusIdx >= tiles.length) focusIdx = tiles.length - 1;
+  if (focusIdx < 0) focusIdx = 0;
+  applyFocus();
+}
+
+function applyFocus() {
+  tiles.forEach((t, i) => t.classList.toggle("focused", i === focusIdx));
+  const t = tiles[focusIdx];
+  if (t) t.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+}
+
+// Spatial navigation: from the focused tile, pick the nearest tile
+// whose center sits in the requested direction. Handles grids with any
+// column count and naturally wraps between sections (exit → top → all).
+function moveFocus(direction) {
+  if (!tiles.length) return;
+  const cur = tiles[focusIdx].getBoundingClientRect();
+  const cx = cur.left + cur.width / 2;
+  const cy = cur.top + cur.height / 2;
+  let best = -1, bestScore = Infinity;
+  for (let i = 0; i < tiles.length; i++) {
+    if (i === focusIdx) continue;
+    const r = tiles[i].getBoundingClientRect();
+    const tx = r.left + r.width / 2;
+    const ty = r.top + r.height / 2;
+    const dx = tx - cx, dy = ty - cy;
+    // Require the candidate to actually be in the requested direction.
+    // 8px tolerance forgives sub-pixel rendering and same-row jitter.
+    if (direction === "up"    && dy >= -8) continue;
+    if (direction === "down"  && dy <=  8) continue;
+    if (direction === "left"  && dx >= -8) continue;
+    if (direction === "right" && dx <=  8) continue;
+    // Weight the perpendicular axis more so up/down doesn't drift
+    // diagonally across the grid.
+    const score = (direction === "up" || direction === "down")
+      ? Math.abs(dy) + Math.abs(dx) * 2
+      : Math.abs(dx) + Math.abs(dy) * 2;
+    if (score < bestScore) { bestScore = score; best = i; }
+  }
+  if (best !== -1) {
+    focusIdx = best;
+    applyFocus();
+  }
+}
+
+// Skip nav when the search input owns focus — let the user type.
+function isTypingInSearch() {
+  return document.activeElement === search;
+}
+
+document.addEventListener("keydown", (e) => {
+  if (isTypingInSearch() && e.key !== "Escape" && e.key !== "Enter") return;
+  switch (e.key) {
+    case "ArrowUp":    e.preventDefault(); moveFocus("up");    break;
+    case "ArrowDown":  e.preventDefault(); moveFocus("down");  break;
+    case "ArrowLeft":  e.preventDefault(); moveFocus("left");  break;
+    case "ArrowRight": e.preventDefault(); moveFocus("right"); break;
+    case "Enter":
+      e.preventDefault();
+      if (isTypingInSearch()) { search.blur(); break; }
+      tiles[focusIdx]?.click();
+      break;
+    case "Escape":
+      e.preventDefault();
+      if (isTypingInSearch()) { search.blur(); break; }
+      // B button equivalent — jump to the Back-to-Workouts tile.
+      focusIdx = 0;
+      applyFocus();
+      break;
+  }
+});
+
+// ── Gamepad ───────────────────────────────────────────────────
+// Polled at requestAnimationFrame. We compare each axis/button to the
+// previous frame's state and only fire on rising-edge so holding the
+// D-pad doesn't blast through the grid in one second.
+const GP_REPEAT_INITIAL_MS = 350;   // hold this long to start repeating
+const GP_REPEAT_RATE_MS    = 90;    // then one tick every Nms
+
+const gpState = { dirHeldSince: 0, lastTick: 0, lastDir: null, aPrev: false, bPrev: false };
+
+function readGamepad() {
+  const pads = navigator.getGamepads?.() || [];
+  for (const gp of pads) {
+    if (gp && gp.connected) return gp;
+  }
+  return null;
+}
+
+function pollGamepad() {
+  const gp = readGamepad();
+  if (!gp) return requestAnimationFrame(pollGamepad);
+
+  const now = performance.now();
+
+  // Direction from D-pad first (standard mapping buttons 12-15), then
+  // left analog stick as fallback. Threshold 0.5 to ignore drift.
+  let dir = null;
+  if      (gp.buttons[12]?.pressed || (gp.axes[1] ?? 0) < -0.5) dir = "up";
+  else if (gp.buttons[13]?.pressed || (gp.axes[1] ?? 0) >  0.5) dir = "down";
+  else if (gp.buttons[14]?.pressed || (gp.axes[0] ?? 0) < -0.5) dir = "left";
+  else if (gp.buttons[15]?.pressed || (gp.axes[0] ?? 0) >  0.5) dir = "right";
+
+  if (dir) {
+    if (dir !== gpState.lastDir) {
+      moveFocus(dir);
+      gpState.lastDir = dir;
+      gpState.dirHeldSince = now;
+      gpState.lastTick = now;
+    } else if (now - gpState.dirHeldSince > GP_REPEAT_INITIAL_MS &&
+               now - gpState.lastTick > GP_REPEAT_RATE_MS) {
+      moveFocus(dir);
+      gpState.lastTick = now;
+    }
+  } else {
+    gpState.lastDir = null;
+  }
+
+  // A button = launch focused tile. Rising-edge only.
+  const aNow = !!gp.buttons[0]?.pressed;
+  if (aNow && !gpState.aPrev) tiles[focusIdx]?.click();
+  gpState.aPrev = aNow;
+
+  // B button = jump back to Back-to-Workouts tile (doesn't auto-launch;
+  // user still has to press A on it to confirm exit).
+  const bNow = !!gp.buttons[1]?.pressed;
+  if (bNow && !gpState.bPrev) { focusIdx = 0; applyFocus(); }
+  gpState.bPrev = bNow;
+
+  requestAnimationFrame(pollGamepad);
+}
+
+window.addEventListener("gamepadconnected", () => {
+  status.textContent = "GAMEPAD CONNECTED";
+  // Kick off polling on first connect; the loop self-restarts via rAF.
+  requestAnimationFrame(pollGamepad);
+});
+
+// ── Boot ──────────────────────────────────────────────────────
+async function load() {
+  status.textContent = "LOADING...";
+  try {
+    const url = systemFilter ? `/api/games?system=${encodeURIComponent(systemFilter)}` : "/api/games";
+    const res = await fetch(url);
+    const data = await res.json();
+    allGames = data.games || [];
+    status.textContent = `${allGames.length} GAMES`;
+    renderTop10();
+    renderAll();
+    rebuildTileList();
+    // Start nav on the first actual game tile, not the exit button —
+    // less likely the user accidentally exits with a single A press.
+    if (tiles.length > 1) focusIdx = 1;
+    applyFocus();
+    // Pre-start gamepad polling in case the controller was already
+    // connected before page load (the connected event won't refire).
+    requestAnimationFrame(pollGamepad);
+  } catch (err) {
+    status.textContent = `FAILED TO LOAD: ${err.message}`;
+  }
+}
+
 let searchTimer = null;
 search.addEventListener("input", () => {
   clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => renderAll(search.value.trim()), 80);
+  searchTimer = setTimeout(() => {
+    renderAll(search.value.trim());
+    rebuildTileList();
+  }, 80);
 });
 
 load();
