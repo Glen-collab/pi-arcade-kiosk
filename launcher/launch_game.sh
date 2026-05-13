@@ -46,4 +46,19 @@ if [ -z "$CORE_PATH" ]; then
   exit 1
 fi
 
+# pi-arcade.service runs as User=pi but is system-scoped, so systemd
+# doesn't propagate the desktop session's XDG_RUNTIME_DIR /
+# WAYLAND_DISPLAY. Without these, retroarch can't open a window on the
+# labwc compositor. Detect them by inspecting the user's runtime dir.
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+if [ -z "${WAYLAND_DISPLAY:-}" ]; then
+  for sock in "$XDG_RUNTIME_DIR"/wayland-*; do
+    case "$(basename "$sock")" in *.lock) continue ;; esac
+    if [ -S "$sock" ]; then
+      export WAYLAND_DISPLAY="$(basename "$sock")"
+      break
+    fi
+  done
+fi
+
 exec retroarch -L "$CORE_PATH" "$ROM_PATH"

@@ -15,7 +15,10 @@ USER_HOME=$(getent passwd "$TARGET_USER" | cut -d: -f6)
 
 echo "==> Installing apt packages"
 apt update
-apt install -y retroarch libretro-fceumm python3-flask unzip
+apt install -y retroarch libretro-fceumm libretro-snes9x python3-flask unzip
+
+echo "==> Ensuring ROM dirs exist"
+sudo -u "$TARGET_USER" mkdir -p "$PROJECT_DIR/roms/nes" "$PROJECT_DIR/roms/snes"
 
 echo "==> Installing RetroArch config for $TARGET_USER"
 sudo -u "$TARGET_USER" mkdir -p "$USER_HOME/.config/retroarch"
