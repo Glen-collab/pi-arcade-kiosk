@@ -307,12 +307,11 @@ const ATTRACT_DEMOS = {
     { rom: "Tetris (U) [!].nes" },
   ],
   snes: [
-    // Lead with games whose attract sequence auto-plays gameplay (not
-    // just a select menu). The All-Stars + World combo cart boots to
-    // its own SMB1/2/3/World picker which is *not* useful attract —
-    // skip it. If a standalone Super Mario World ROM ever lands in
-    // roms/snes/, drop it back at the top.
+    // Lead with DK Country (full auto-played gameplay attract).
+    // The All-Stars + SMW combo cart's intro is short but Glen
+    // confirmed it's fine for the gym vibe — slot it in second.
     { rom: "Donkey Kong Country (U) (V1.2) [!].zip" },
+    { rom: "Super Mario All-Stars + Super Mario World (U) [!].zip" },
     { rom: "Super Metroid (JU) [!].zip" },
     { rom: "Chrono Trigger (U) [!].zip" },
     { rom: "Street Fighter II - The World Warrior (U) [!].zip" },
