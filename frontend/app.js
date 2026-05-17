@@ -29,6 +29,32 @@ function escapeHtml(s) {
   }[c]));
 }
 
+// Latest gamepad index that fired a launch press. Captured by the
+// gamepad poll loop and consumed by launch() so the backend knows
+// which physical pad to pin RetroArch's Player 1 to. -1 means "no
+// gamepad / launched via mouse/keyboard"; backend falls back to its
+// default joypad index in that case.
+let lastLaunchGamepadIdx = -1;
+
+// Per-pad last-activity timestamp (Date.now() ms). Updated by the
+// gamepad poll loop whenever a pad presses a button or moves its
+// D-pad past the deadzone. At launch time we count pads active within
+// PAD_ACTIVITY_WINDOW_MS and pass it to the backend as num_users —
+// RetroArch's input_max_users then matches the count of pads that
+// actually look alive, so a still-paired-but-silent dongle won't
+// trigger games like MK3 to auto-jump to VS mode while at the same
+// time letting 2-player work the moment both pads are firing.
+const padActivity = new Map();
+const PAD_ACTIVITY_WINDOW_MS = 30000;
+function countActivePads() {
+  const now = Date.now();
+  let n = 0;
+  for (const t of padActivity.values()) {
+    if (now - t < PAD_ACTIVITY_WINDOW_MS) n++;
+  }
+  return n;
+}
+
 function makeTile(game, opts = {}) {
   const tile = document.createElement("button");
   tile.className = "tile" + (opts.top ? " top" : "");
@@ -76,12 +102,28 @@ function renderAll(query = "") {
 }
 
 async function launch(game) {
+  // Flip wasPlaying optimistically so the gamepad poll loop stops
+  // forwarding face-button presses to tile.click() in the gap between
+  // the user clicking a tile and the next /api/status poll seeing the
+  // new retroarch process. Without this, pressing A inside a fighting
+  // game makes the picker behind RetroArch launch the NEXT alphabetical
+  // game (MK3 → MK2 → MK1, etc.). The setInterval below resyncs it on
+  // its normal cadence; this is just to close the launch-race window.
+  wasPlaying = true;
   status.textContent = `LAUNCHING ${game.title.toUpperCase()}...`;
+  const body = { system: game.system, rom: game.rom };
+  if (lastLaunchGamepadIdx >= 0) body.joypad_index = lastLaunchGamepadIdx;
+  // Number of pads that pressed something in the last 30 seconds. The
+  // launcher uses this for RetroArch's input_max_users so 2-player
+  // games light up the second port only when there's actually a
+  // second pad to drive it.
+  const activeCount = countActivePads();
+  if (activeCount > 0) body.num_users = activeCount;
   try {
     const res = await fetch("/api/launch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ system: game.system, rom: game.rom }),
+      body: JSON.stringify(body),
     });
     const data = await res.json();
     if (data.ok) {
@@ -197,55 +239,123 @@ document.addEventListener("keydown", (e) => {
 const GP_REPEAT_INITIAL_MS = 350;   // hold this long to start repeating
 const GP_REPEAT_RATE_MS    = 90;    // then one tick every Nms
 
-const gpState = { dirHeldSince: 0, lastTick: 0, lastDir: null, aPrev: false, bPrev: false };
+const gpState = { dirHeldSince: 0, lastTick: 0, lastDir: null, launchPrev: false };
 
-function readGamepad() {
+function listGamepads() {
+  // Every connected pad, in array order. Chromium leaves disconnected
+  // slots as null. The kiosk has two DragonRise dongles plugged in but
+  // only one pad paired at a time — we can't predict which dongle the
+  // active pad's radio bonded to, and the kernel may assign /dev/input/
+  // js0 to the silent dongle. So we read ALL pads each frame and OR
+  // their inputs together; whichever pad is actually sending events
+  // drives the picker.
   const pads = navigator.getGamepads?.() || [];
+  return Array.from(pads).filter(gp => gp && gp.connected);
+}
+
+// Build a virtual "merged pad" from every connected gamepad — any pad
+// pressing a direction or button counts. Returns null if no pad is
+// connected so the polling loop can short-circuit. Also returns the
+// `launchIdx` of whichever pad fired a face button (-1 if none) so the
+// launch call can tell the backend which joypad RetroArch should bind
+// to Player 1.
+function readMergedInput() {
+  const pads = listGamepads();
+  if (!pads.length) return null;
+  let dir = null;
+  let launch = false;
+  let launchIdx = -1;
+  const now = Date.now();
   for (const gp of pads) {
-    if (gp && gp.connected) return gp;
+    // Activity tracking — any pressed button or axis outside the
+    // deadzone counts as a live pad for the activity window.
+    let padFiring = false;
+    for (let b = 0; b < gp.buttons.length; b++) {
+      if (gp.buttons[b]?.pressed) { padFiring = true; break; }
+    }
+    if (!padFiring) {
+      for (const ax of gp.axes) {
+        if (Math.abs(ax) > 0.5) { padFiring = true; break; }
+      }
+    }
+    if (padFiring) padActivity.set(gp.index, now);
+
+    if (!dir) {
+      if      (gp.buttons[12]?.pressed || (gp.axes[1] ?? 0) < -0.5) dir = "up";
+      else if (gp.buttons[13]?.pressed || (gp.axes[1] ?? 0) >  0.5) dir = "down";
+      else if (gp.buttons[14]?.pressed || (gp.axes[0] ?? 0) < -0.5) dir = "left";
+      else if (gp.buttons[15]?.pressed || (gp.axes[0] ?? 0) >  0.5) dir = "right";
+    }
+    if (gp.buttons[0]?.pressed || gp.buttons[1]?.pressed ||
+        gp.buttons[2]?.pressed || gp.buttons[3]?.pressed) {
+      launch = true;
+      if (launchIdx === -1) launchIdx = gp.index;
+    }
   }
-  return null;
+  return { dir, launch, launchIdx };
 }
 
 function pollGamepad() {
-  const gp = readGamepad();
-  if (!gp) return requestAnimationFrame(pollGamepad);
+  const input = readMergedInput();
+  if (!input) return requestAnimationFrame(pollGamepad);
+
+  const launchNow = input.launch;
+
+  // Chromium polls the gamepad API even when RetroArch is the foreground
+  // window — so without this guard, every face-button press inside a
+  // running game also tries to launch the focused tile in the picker
+  // behind it. Skip all picker input processing while a game is alive,
+  // but keep launchPrev in sync so a held button (during a Select+Start
+  // exit chord, say) doesn't fire a "launch focused tile" the instant
+  // wasPlaying flips back to false.
+  if (wasPlaying) {
+    gpState.launchPrev = launchNow;
+    gpState.lastDir = null;
+    return requestAnimationFrame(pollGamepad);
+  }
 
   const now = performance.now();
 
-  // Direction from D-pad first (standard mapping buttons 12-15), then
-  // left analog stick as fallback. Threshold 0.5 to ignore drift.
-  let dir = null;
-  if      (gp.buttons[12]?.pressed || (gp.axes[1] ?? 0) < -0.5) dir = "up";
-  else if (gp.buttons[13]?.pressed || (gp.axes[1] ?? 0) >  0.5) dir = "down";
-  else if (gp.buttons[14]?.pressed || (gp.axes[0] ?? 0) < -0.5) dir = "left";
-  else if (gp.buttons[15]?.pressed || (gp.axes[0] ?? 0) >  0.5) dir = "right";
+  // Direction is the merged direction from any connected pad. D-pads
+  // come through as axes 0/1 on DragonRise pads; buttons 12-15 cover
+  // standard-mapped pads as a fallback. (Threshold + merge live in
+  // readMergedInput.)
+  const dir = input.dir;
 
   if (dir) {
     if (dir !== gpState.lastDir) {
       moveFocus(dir);
+      noteInput();
       gpState.lastDir = dir;
       gpState.dirHeldSince = now;
       gpState.lastTick = now;
     } else if (now - gpState.dirHeldSince > GP_REPEAT_INITIAL_MS &&
                now - gpState.lastTick > GP_REPEAT_RATE_MS) {
       moveFocus(dir);
+      noteInput();
       gpState.lastTick = now;
     }
   } else {
     gpState.lastDir = null;
   }
 
-  // A button = launch focused tile. Rising-edge only.
-  const aNow = !!gp.buttons[0]?.pressed;
-  if (aNow && !gpState.aPrev) tiles[focusIdx]?.click();
-  gpState.aPrev = aNow;
-
-  // B button = jump back to Back-to-Workouts tile (doesn't auto-launch;
-  // user still has to press A on it to confirm exit).
-  const bNow = !!gp.buttons[1]?.pressed;
-  if (bNow && !gpState.bPrev) { focusIdx = 0; applyFocus(); }
-  gpState.bPrev = bNow;
+  // Any face button (0/1/2/3) launches the focused tile. Cheap knockoff
+  // pads don't expose a Chromium "standard" mapping, so the physical
+  // "A" can land on any index — accept all four so the user doesn't
+  // have to guess. Deliberately NOT including Start (9): Select+Start
+  // is the RetroArch exit chord, and Chromium still sees the Start
+  // press in the background when the user exits a game. Counting it
+  // as a launch press would auto-relaunch the focused tile the moment
+  // the user exits a game. Rising-edge only. (launchNow computed above.)
+  if (launchNow && !gpState.launchPrev) {
+    // Remember which pad fired so launch() can pin RetroArch Player 1
+    // to it. Captured here so the value reflects the press event itself
+    // rather than whatever state the pad is in by the time fetch fires.
+    lastLaunchGamepadIdx = input.launchIdx;
+    noteInput();
+    tiles[focusIdx]?.click();
+  }
+  gpState.launchPrev = launchNow;
 
   requestAnimationFrame(pollGamepad);
 }
@@ -258,6 +368,17 @@ window.addEventListener("gamepadconnected", () => {
 
 // ── Boot ──────────────────────────────────────────────────────
 async function load() {
+  // Kill any orphaned RetroArch from a previous picker session before
+  // we settle into the new page. Chromium respawns (mode flips, agent
+  // reload, manual pkill chromium) leave an in-flight game running
+  // beneath the new Chromium window; without this nudge, the picker
+  // is visually on top of a live game and the wasPlaying guard then
+  // silently blocks all gamepad input. /api/quit is a no-op if no
+  // game is running.
+  try {
+    await fetch("/api/quit", { method: "POST" });
+    wasPlaying = false;
+  } catch (e) { /* fall through — picker still loads */ }
   status.textContent = "LOADING...";
   try {
     const url = systemFilter ? `/api/games?system=${encodeURIComponent(systemFilter)}` : "/api/games";

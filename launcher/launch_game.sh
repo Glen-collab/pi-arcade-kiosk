@@ -1,16 +1,35 @@
 #!/bin/bash
 # Launch a ROM with RetroArch + the appropriate libretro core.
-# Usage: launch_game.sh <system> <rom-filename>
-# Example: launch_game.sh nes "Super Mario Bros (U).nes"
+# Usage: launch_game.sh <system> <rom-filename> [joypad-index] [num-users]
+# Example: launch_game.sh nes "Super Mario Bros (U).nes" 1 2
+#
+# joypad-index is optional. When set, Player 1 in RetroArch is pinned
+# to that udev joypad index instead of the default 0. The picker JS
+# passes the index of whichever pad fired the launch button — without
+# this, two-dongle setups silently land Player 1 on a silent dongle.
+#
+# num-users is optional and defaults to 1. The picker reports the
+# count of pads that fired any button or axis in the last 30 sec.
+# RetroArch's input_max_users gets pinned to that count so single-pad
+# gameplay doesn't get auto-promoted to VS mode by a still-enumerated
+# silent dongle, while 2-player lights up the moment a real second
+# pad starts firing.
 
 set -e
 
 SYSTEM="$1"
 ROM="$2"
+JOYPAD_INDEX="$3"
+NUM_USERS="$4"
 
 if [ -z "$SYSTEM" ] || [ -z "$ROM" ]; then
-  echo "Usage: $0 <system> <rom-filename>"
+  echo "Usage: $0 <system> <rom-filename> [joypad-index] [num-users]"
   exit 1
+fi
+
+# Sanitize NUM_USERS: only accept positive integers; default to 1.
+if ! [[ "$NUM_USERS" =~ ^[1-9][0-9]*$ ]]; then
+  NUM_USERS="1"
 fi
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -63,4 +82,20 @@ if [ -z "${WAYLAND_DISPLAY:-}" ]; then
   done
 fi
 
-exec retroarch -L "$CORE_PATH" "$ROM_PATH"
+# Per-launch override appended to RetroArch's base config:
+#   • input_max_users matches the picker's count of pads with recent
+#     activity. Hides any still-paired-but-silent dongle so games like
+#     MK3 don't auto-VS, while letting 2-player work the moment two
+#     real pads are firing.
+#   • input_player1_joypad_index pins Player 1 to whichever pad the
+#     picker reported as the launching pad (so a silent paired dongle
+#     doesn't claim Player 1 just by enumeration order).
+OVERRIDE_CFG="/tmp/retroarch-launch-override.cfg"
+{
+  echo "input_max_users = \"$NUM_USERS\""
+  if [ -n "$JOYPAD_INDEX" ] && [[ "$JOYPAD_INDEX" =~ ^[0-9]+$ ]]; then
+    echo "input_player1_joypad_index = \"$JOYPAD_INDEX\""
+  fi
+} > "$OVERRIDE_CFG"
+
+exec retroarch --appendconfig "$OVERRIDE_CFG" -L "$CORE_PATH" "$ROM_PATH"

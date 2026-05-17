@@ -142,6 +142,31 @@ def launch():
     data = request.get_json(silent=True) or {}
     system = data.get("system")
     rom = data.get("rom", "")
+    # Picker JS sends the index of whichever pad fired the launch press.
+    # Forwarded as launch_game.sh's 3rd arg so RetroArch's Player 1
+    # tracks the alive pad instead of defaulting to joypad index 0.
+    raw_joypad = data.get("joypad_index")
+    joypad_index = None
+    if raw_joypad is not None:
+        try:
+            n = int(raw_joypad)
+            if 0 <= n <= 15:
+                joypad_index = str(n)
+        except (TypeError, ValueError):
+            pass
+    # Number of pads the picker has seen recent activity on. Drives
+    # RetroArch's input_max_users so single-pad gameplay isn't promoted
+    # to VS mode by ghost-enumerated dongles, but 2-player works as
+    # soon as a second pad starts firing events.
+    raw_num_users = data.get("num_users")
+    num_users = None
+    if raw_num_users is not None:
+        try:
+            n = int(raw_num_users)
+            if 1 <= n <= 4:
+                num_users = str(n)
+        except (TypeError, ValueError):
+            pass
 
     if system not in ALLOWED_SYSTEMS:
         return jsonify({"ok": False, "error": "invalid system"}), 400
@@ -167,7 +192,10 @@ def launch():
         save_plays(plays)
         new_count = plays[game_id]
 
-    current_proc = subprocess.Popen([LAUNCHER, system, rom])
+    # 3rd arg = joypad index, 4th = num_users. launch_game.sh tolerates
+    # either being empty so positional order stays predictable.
+    cmd = [LAUNCHER, system, rom, joypad_index or "", num_users or ""]
+    current_proc = subprocess.Popen(cmd)
     return jsonify({"ok": True, "plays": new_count})
 
 
