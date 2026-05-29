@@ -47,6 +47,8 @@ fi
 case "$SYSTEM" in
   nes)  CORE_NAME="nestopia" ;;
   snes) CORE_NAME="snes9x" ;;
+  n64)  CORE_NAME="parallel_n64" ;;
+  gba)  CORE_NAME="mgba" ;;
   *)    echo "Unknown system: $SYSTEM"; exit 1 ;;
 esac
 
@@ -95,6 +97,37 @@ OVERRIDE_CFG="/tmp/retroarch-launch-override.cfg"
   echo "input_max_users = \"$NUM_USERS\""
   if [ -n "$JOYPAD_INDEX" ] && [[ "$JOYPAD_INDEX" =~ ^[0-9]+$ ]]; then
     echo "input_player1_joypad_index = \"$JOYPAD_INDEX\""
+  fi
+
+  # Select (btn 8) + Start (btn 9) = exit back to the game list, matching
+  # the Pi 4 combo. Select stays usable as a normal in-game button; only
+  # the Select+Start combo quits. Exiting RetroArch drops the player back
+  # to the picker (the Flask backend sees the process end).
+  echo 'input_enable_hotkey_btn = "8"'
+  echo 'input_exit_emulator_btn = "9"'
+
+  # PS1-style pads share the 0810:e501 chip with the 2-button NES pads, so
+  # RetroArch can't auto-distinguish them. Map per-GAME instead: a PS1 game
+  # forces the full PS1 button layout for Player 1; every other system uses
+  # the device's NES autoconfig (B=btn0, A=btn1). Lets both pads work —
+  # the right map is picked by what's being played.
+  if [ "$SYSTEM" = "ps1" ]; then
+    cat <<'PS1MAP'
+input_player1_b_btn = "2"
+input_player1_a_btn = "1"
+input_player1_y_btn = "3"
+input_player1_x_btn = "0"
+input_player1_l_btn = "6"
+input_player1_r_btn = "7"
+input_player1_l2_btn = "4"
+input_player1_r2_btn = "5"
+input_player1_select_btn = "8"
+input_player1_start_btn = "9"
+input_player1_up_axis = "-1"
+input_player1_down_axis = "+1"
+input_player1_left_axis = "-0"
+input_player1_right_axis = "+0"
+PS1MAP
   fi
 } > "$OVERRIDE_CFG"
 
