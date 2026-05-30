@@ -93,6 +93,20 @@ fi
 #     picker reported as the launching pad (so a silent paired dongle
 #     doesn't claim Player 1 just by enumeration order).
 OVERRIDE_CFG="/tmp/retroarch-launch-override.cfg"
+
+# Count physically plugged-in pads. Cheap dongles often share garbage
+# VID/PIDs, and the picker only counts pads with recent activity — so
+# a player-2 dongle that's plugged in but silent gets ignored. Force
+# input_max_users >= number of /dev/input/js* devices so any plugged
+# pad can play, even without "waking" it in the picker first.
+JS_COUNT=$(ls /dev/input/js* 2>/dev/null | wc -l)
+[ -z "$JS_COUNT" ] && JS_COUNT=1
+if [ "$JS_COUNT" -gt "$NUM_USERS" ]; then
+  NUM_USERS="$JS_COUNT"
+fi
+# Cap at 4 (retroarch supports up to 16 but no kiosk game needs more)
+[ "$NUM_USERS" -gt 4 ] && NUM_USERS=4
+
 {
   echo "input_max_users = \"$NUM_USERS\""
   if [ -n "$JOYPAD_INDEX" ] && [[ "$JOYPAD_INDEX" =~ ^[0-9]+$ ]]; then
