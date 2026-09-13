@@ -13,7 +13,7 @@ const exitTile      = document.getElementById("exit-tile");
 const systemPill    = document.getElementById("system-pill");
 
 const systemFilter = (new URLSearchParams(window.location.search).get("system") || "").toLowerCase();
-if (systemFilter === "nes" || systemFilter === "snes") {
+if (["nes", "snes", "n64", "gba"].includes(systemFilter)) {
   systemPill.textContent = systemFilter.toUpperCase();
   systemPill.hidden = false;
   document.body.classList.add(`system-${systemFilter}`);
@@ -428,9 +428,6 @@ const ATTRACT_DEMOS = {
     { rom: "Tetris (U) [!].nes" },
   ],
   snes: [
-    // Lead with DK Country (full auto-played gameplay attract).
-    // The All-Stars + SMW combo cart's intro is short but Glen
-    // confirmed it's fine for the gym vibe — slot it in second.
     { rom: "Donkey Kong Country (U) (V1.2) [!].zip" },
     { rom: "Super Mario All-Stars + Super Mario World (U) [!].zip" },
     { rom: "Super Metroid (JU) [!].zip" },
@@ -438,6 +435,12 @@ const ATTRACT_DEMOS = {
     { rom: "Street Fighter II - The World Warrior (U) [!].zip" },
     { rom: "Killer Instinct (U) (V1.1) [!].zip" },
     { rom: "Super Mario World 2 - Yoshi's Island (U) (M3) (V1.1).zip" },
+  ],
+  n64: [
+    { rom: "Mario Kart 64 (U) [!].z64" },
+  ],
+  gba: [
+    { rom: "Castlevania - Circle of the Moon # GBA.GBA" },
   ],
 };
 let lastInput = Date.now();
@@ -466,7 +469,7 @@ setInterval(async () => {
 
   if (Date.now() - lastInput < IDLE_ATTRACT_MS) return;
 
-  const sys = systemFilter === "snes" ? "snes" : "nes";
+  const sys = ATTRACT_DEMOS[systemFilter] ? systemFilter : "nes";
   const pool = ATTRACT_DEMOS[sys] || [];
   if (!pool.length) return;
   const pick = pool[attractIdx % pool.length];
