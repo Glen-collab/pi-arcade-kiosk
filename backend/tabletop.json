@@ -1,0 +1,53 @@
+{
+  "_comment": "Cocktail-table seating hints, matched by slugified clean title (the same slug derive_id builds), so ROM dump suffixes like (U) or [!] don't matter. Three seating values, and the distinction is the whole point of the feature: 'alternating' = turn-based, so the screen can flip 180 between turns and both players read it right-way-up from opposite sides — this is what real Pac-Man cocktail cabinets did. 'same-side' = simultaneous play on one shared orientation, so both players must sit on the SAME side of the table; flipping mid-game would blind one of them. 'either-side' = the playfield is radially symmetric or orientation-agnostic, so opposite seats work with no flip at all. Warlords is the classic 'either-side' game and it is an Atari arcade title, not an NES one — the NES library has essentially nothing in that category, which is why the list below is empty. Unlisted games default to same-side.",
+
+  "alternating": [
+    "golf",
+    "nes-open-tournament-golf",
+    "anticipation",
+    "jeopardy",
+    "wheel-of-fortune",
+    "monopoly",
+    "pinball",
+    "track-field",
+    "track-field-ii",
+    "excitebike",
+    "bases-loaded",
+    "mach-rider",
+    "slalom",
+    "10-yard-fight"
+  ],
+
+  "same_side": [
+    "jackal",
+    "ikari-warriors",
+    "ikari-warriors-ii-victory-road",
+    "gauntlet",
+    "gauntlet-ii",
+    "smash-tv",
+    "micro-machines",
+    "super-off-road",
+    "ivan-ironman-stewarts-super-off-road",
+    "rampart",
+    "battle-city",
+    "bomberman-ii",
+    "contra",
+    "super-c",
+    "double-dragon-ii-the-revenge",
+    "double-dragon-iii-the-sacred-stones",
+    "river-city-ransom",
+    "nintendo-world-cup",
+    "tecmo-bowl",
+    "tecmo-super-bowl",
+    "ice-hockey",
+    "blades-of-steel",
+    "baseball-stars",
+    "balloon-fight",
+    "bubble-bobble",
+    "mario-bros",
+    "dr-mario",
+    "tetris"
+  ],
+
+  "either_side": []
+}

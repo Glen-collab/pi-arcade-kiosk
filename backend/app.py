@@ -26,6 +26,7 @@ FRONTEND_DIR = os.path.join(PROJECT_DIR, "frontend")
 LAUNCHER = os.path.join(PROJECT_DIR, "launcher", "launch_game.sh")
 OVERRIDES_FILE = os.path.join(PROJECT_DIR, "backend", "games.json")
 PLAYS_FILE = os.path.join(PROJECT_DIR, "backend", "plays.json")
+TABLETOP_FILE = os.path.join(PROJECT_DIR, "backend", "tabletop.json")
 ROMS_DIR = os.path.join(PROJECT_DIR, "roms")
 
 ALLOWED_SYSTEMS = {"nes", "snes", "n64", "gba"}
@@ -72,6 +73,28 @@ def load_overrides():
         return {}
 
 
+def load_tabletop():
+    """slug -> seating hint for cocktail-table mode.
+
+    Cached per call like load_overrides; the file is a few dozen lines and
+    scan_games already re-reads its siblings on every request.
+    """
+    if not os.path.isfile(TABLETOP_FILE):
+        return {}
+    try:
+        with open(TABLETOP_FILE) as f:
+            data = json.load(f)
+    except Exception:
+        return {}
+    seating = {}
+    for key, value in (("alternating", "alternating"),
+                       ("same_side", "same-side"),
+                       ("either_side", "either-side")):
+        for slug in data.get(key, []):
+            seating[slug] = value
+    return seating
+
+
 def load_plays():
     if not os.path.isfile(PLAYS_FILE):
         return {}
@@ -93,9 +116,10 @@ def derive_id(rom_filename: str, override: dict) -> str:
     return override.get("id") or slugify(clean_title(rom_filename))
 
 
-def scan_games(only_system=None):
+def scan_games(only_system=None, tabletop_only=False):
     overrides = load_overrides()
     plays = load_plays()
+    seating_map = load_tabletop()
     games = []
     systems = (
         [only_system] if only_system in ALLOWED_SYSTEMS else sorted(ALLOWED_SYSTEMS)
@@ -110,6 +134,12 @@ def scan_games(only_system=None):
             override = overrides.get(fn, {})
             title = override.get("title") or clean_title(fn)
             game_id = override.get("id") or slugify(title)
+            # A per-ROM "seating" override in games.json wins over the
+            # curated slug list, so a ROM whose title doesn't match can
+            # still be classified without editing tabletop.json.
+            seating = override.get("seating") or seating_map.get(game_id, "same-side")
+            if tabletop_only and seating not in ("alternating", "either-side"):
+                continue
             games.append({
                 "id": game_id,
                 "title": title,
@@ -117,6 +147,7 @@ def scan_games(only_system=None):
                 "rom": fn,
                 "description": override.get("description", ""),
                 "plays": plays.get(game_id, 0),
+                "seating": seating,
             })
     return games
 
@@ -132,7 +163,12 @@ def games():
     # picks the system from the GymTV dashboard, which drives the URL
     # the Pi's Chromium kiosk loads, which scopes the picker grid.
     only = (request.args.get("system") or "").strip().lower()
-    return jsonify({"games": scan_games(only_system=only or None)})
+    # ?tabletop=1 narrows the grid to games that survive two players sitting
+    # on opposite sides of a cocktail cabinet — see backend/tabletop.json.
+    tabletop_only = (request.args.get("tabletop") or "").strip() in ("1", "true", "yes")
+    return jsonify({
+        "games": scan_games(only_system=only or None, tabletop_only=tabletop_only)
+    })
 
 
 @app.route("/api/launch", methods=["POST"])
@@ -167,6 +203,20 @@ def launch():
         except (TypeError, ValueError):
             pass
 
+    # Screen rotation in 90-degree steps, passed straight to RetroArch's
+    # video_rotation. 0 = as-mounted, 2 = flipped 180 for the player sitting
+    # opposite. 1 and 3 exist for a panel physically mounted portrait, which
+    # is how the original Pac-Man cocktail monitor sat.
+    raw_rotation = data.get("rotation")
+    rotation = None
+    if raw_rotation is not None:
+        try:
+            n = int(raw_rotation)
+            if 0 <= n <= 3:
+                rotation = str(n)
+        except (TypeError, ValueError):
+            pass
+
     if system not in ALLOWED_SYSTEMS:
         return jsonify({"ok": False, "error": "invalid system"}), 400
     if "/" in rom or "\\" in rom or ".." in rom or not rom:
@@ -193,7 +243,9 @@ def launch():
 
     # 3rd arg = joypad index, 4th = num_users. launch_game.sh tolerates
     # either being empty so positional order stays predictable.
-    cmd = [LAUNCHER, system, rom, joypad_index or "", num_users or ""]
+    # 5th arg = rotation. Positional like the rest; the launcher tolerates
+    # an empty string and leaves RetroArch's configured orientation alone.
+    cmd = [LAUNCHER, system, rom, joypad_index or "", num_users or "", rotation or ""]
     current_proc = subprocess.Popen(cmd)
     return jsonify({"ok": True, "plays": new_count})
 

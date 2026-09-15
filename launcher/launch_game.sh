@@ -1,6 +1,6 @@
 #!/bin/bash
 # Launch a ROM with RetroArch + the appropriate libretro core.
-# Usage: launch_game.sh <system> <rom-filename> [joypad-index] [num-users]
+# Usage: launch_game.sh <system> <rom-filename> [joypad-index] [num-users] [rotation]
 # Example: launch_game.sh nes "Super Mario Bros (U).nes" 1 2
 #
 # joypad-index is optional. When set, Player 1 in RetroArch is pinned
@@ -21,10 +21,18 @@ SYSTEM="$1"
 ROM="$2"
 JOYPAD_INDEX="$3"
 NUM_USERS="$4"
+ROTATION="$5"
 
 if [ -z "$SYSTEM" ] || [ -z "$ROM" ]; then
   echo "Usage: $0 <system> <rom-filename> [joypad-index] [num-users]"
   exit 1
+fi
+
+# Sanitize ROTATION: RetroArch's video_rotation is 0-3 in 90-degree steps.
+# Anything else (including empty) means "leave the configured orientation
+# alone", which keeps the upright cabinet behaving exactly as before.
+if ! [[ "$ROTATION" =~ ^[0-3]$ ]]; then
+  ROTATION=""
 fi
 
 # Sanitize NUM_USERS: only accept positive integers; default to 1.
@@ -119,6 +127,15 @@ fi
   # to the picker (the Flask backend sees the process end).
   echo 'input_enable_hotkey_btn = "8"'
   echo 'input_exit_emulator_btn = "9"'
+
+  # Cocktail cabinet: rotate the whole output so the player on the far side
+  # reads the screen right-way-up. video_allow_rotate must be on or the core
+  # is permitted to veto it — NES cores report a 0-degree preference and
+  # would otherwise win.
+  if [ -n "$ROTATION" ]; then
+    echo 'video_allow_rotate = "true"'
+    echo "video_rotation = \"$ROTATION\""
+  fi
 
   # PS1-style pads share the 0810:e501 chip with the 2-button NES pads, so
   # RetroArch can't auto-distinguish them. Map per-GAME instead: a PS1 game

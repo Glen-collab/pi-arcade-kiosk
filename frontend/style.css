@@ -247,3 +247,28 @@ body.system-snes .tile.top { border-color: rgba(184, 141, 255, 0.4); }
   .status { text-align: left; }
   .hint { font-size: 8px; padding: 8px 12px; gap: 8px; }
 }
+
+/* ---- Cocktail-table mode ---------------------------------------------- */
+/* Seating hint on each tile. Only rendered when the picker is loaded with
+   ?table=1, so the upright cabinet's tiles are untouched. */
+.tile-seat {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+}
+.seat-alternating { background: rgba(32, 96, 168, 0.85); }
+.seat-either-side { background: rgba(28, 132, 72, 0.85); }
+.seat-same-side   { background: rgba(120, 66, 12, 0.85); }
+
+/* The picker itself is read by whoever is choosing, so it is NOT rotated —
+   rotation applies to the game output via RetroArch. This only widens the
+   touch targets, because on a table the screen is flat and further from
+   your eyes than on an upright. */
+body.table-mode .tile { min-height: 5.5rem; }
+body.table-mode .tile-title { font-size: 1.05rem; }

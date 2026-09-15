@@ -12,6 +12,18 @@ const allHeading    = document.getElementById("all-heading");
 const exitTile      = document.getElementById("exit-tile");
 const systemPill    = document.getElementById("system-pill");
 
+// Cocktail-table mode. ?table=1 narrows the grid to games that work with two
+// players sitting on opposite sides, and ?rotate=0..3 sets the RetroArch
+// output rotation for every launch from this picker. They are separate knobs
+// on purpose: a table can be worth filtering for without needing a flip (the
+// panel may already be mounted to face the player who picks), and a rotated
+// panel may want the full library.
+const params       = new URLSearchParams(window.location.search);
+const tableMode    = ["1", "true", "yes"].includes((params.get("table") || "").toLowerCase());
+const rotateParam  = params.get("rotate");
+const tableRotation = /^[0-3]$/.test(rotateParam || "") ? Number(rotateParam) : null;
+if (tableMode) document.body.classList.add("table-mode");
+
 const systemFilter = (new URLSearchParams(window.location.search).get("system") || "").toLowerCase();
 if (["nes", "snes", "n64", "gba"].includes(systemFilter)) {
   systemPill.textContent = systemFilter.toUpperCase();
@@ -60,7 +72,14 @@ function makeTile(game, opts = {}) {
   tile.className = "tile" + (opts.top ? " top" : "");
   const rank  = opts.rank ? `<span class="tile-rank">${opts.rank}</span>` : "";
   const plays = game.plays > 0 ? `<span class="tile-plays">${game.plays}</span>` : "";
-  tile.innerHTML = `${rank}${plays}<div class="tile-title">${escapeHtml(game.title)}</div>`;
+  // In table mode the seating hint is the single most useful thing on the
+  // tile: it tells you where to sit before you start, not after.
+  let seat = "";
+  if (tableMode && game.seating) {
+    const label = { "alternating": "TAKE TURNS", "either-side": "ANY SEAT", "same-side": "SIT TOGETHER" }[game.seating];
+    if (label) seat = `<span class="tile-seat seat-${game.seating}">${label}</span>`;
+  }
+  tile.innerHTML = `${rank}${plays}${seat}<div class="tile-title">${escapeHtml(game.title)}</div>`;
   tile.addEventListener("click", () => launch(game));
   return tile;
 }
@@ -119,6 +138,7 @@ async function launch(game) {
   // second pad to drive it.
   const activeCount = countActivePads();
   if (activeCount > 0) body.num_users = activeCount;
+  if (tableRotation !== null) body.rotation = tableRotation;
   try {
     const res = await fetch("/api/launch", {
       method: "POST",
@@ -381,7 +401,10 @@ async function load() {
   } catch (e) { /* fall through — picker still loads */ }
   status.textContent = "LOADING...";
   try {
-    const url = systemFilter ? `/api/games?system=${encodeURIComponent(systemFilter)}` : "/api/games";
+    const q = [];
+    if (systemFilter) q.push(`system=${encodeURIComponent(systemFilter)}`);
+    if (tableMode) q.push("tabletop=1");
+    const url = q.length ? `/api/games?${q.join("&")}` : "/api/games";
     const res = await fetch(url);
     const data = await res.json();
     allGames = data.games || [];
