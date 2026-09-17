@@ -5,22 +5,28 @@ in the repo is `launcher/dual_screen.sh --check`, a preflight for the
 two-monitor approach this plan now supersedes — kept because it still answers
 a useful question, not because it is the path.
 
-The target: an original Ms. Pac-Man cocktail cabinet, refurbished, running a
-Pi 4. Two players sitting opposite each other, both reading the same game
-right-way-up, on the cabinet's single screen. Street Fighter across the table.
+The target: a cocktail cabinet running a Pi 4, with two players sitting
+opposite each other and both reading the same game right-way-up on one screen.
+Street Fighter across the table.
+
+The cabinet is an original Ms. Pac-Man cocktail, but **cutting it or building a
+new one are both on the table**, so the cabinet does not constrain the design.
+
+**Agreed sequencing: prove the software first.** The shader can be written and
+tested on any machine with a screen. Nothing gets bought, cut or built until it
+demonstrably works. Pi 4 pending.
 
 ---
 
-## What the cabinet gives us for free
+## What the original cabinet gives us
 
-The refab is easier than a scratch build, because the hard physical problems
-are already solved:
+If it is kept largely intact, the hard physical problems are already solved:
 
 - **Two control panels on opposite sides.** The seating we want is the seating
   it was built for.
 - **A portrait monitor bay.** Ms. Pac-Man is a vertical game, so the screen's
-  long axis already runs from one player to the other. This turns out to be
-  exactly the orientation the split shader wants — see the geometry below.
+  long axis already runs player to player — which suits the fallback layout
+  below without any modification.
 - **Glass top, finished cabinet, stools.** None of which we have to make.
 
 One nice bit of symmetry: the original flipped the screen between turns because
@@ -29,45 +35,50 @@ and the shader lets both players play at once.
 
 ---
 
-## Display
+## Display — two layouts, decided by measurement
 
-### Geometry
+The cabinet is no longer a constraint: building a new one is on the table, as
+is cutting the original. So pick the layout on merit, then decide the cabinet.
 
-Mount the panel portrait, matching the CRT it replaces. The screen's long axis
-runs player-to-player; split it into a near band and a far band, one per
-player. Because the full screen is portrait, each **band comes out landscape** —
-which is the right shape for a 4:3 console game.
+### Primary: 24" landscape, split down the middle, halves rotated 90° apart
 
-| Panel | Portrait | Per-player band | Band aspect | 4:3 game fits |
+Split a 24" 16:9 panel into two 960x1080 halves and rotate each **90 degrees in
+opposite directions**. Players sit at the two short ends, facing each other
+along the panel's long axis. From any other angle both halves look sideways and
+point away from each other, which is exactly why it reads correctly from the
+two seats.
+
+### Fallback: 19" portrait, split near/far, far half rotated 180°
+
+What the original bay takes without modification. The screen's long axis runs
+player to player, so each band comes out landscape.
+
+| Layout | Panel size | Per-player pixels | 4:3 game | Physical |
 |---|---|---|---|---|
-| 1280×1024 (5:4) | 1024×1280 | 1024×640 | 1.60 | 853×640 |
-| 1024×768 (4:3) | 768×1024 | 768×512 | 1.50 | 683×512 |
-| 1600×1200 (4:3) | 1200×1600 | 1200×800 | 1.50 | 1067×800 |
+| 24" 16:9, 90° apart | 20.9 x 11.8 in | 1080x960 | 1080x810 | ~11.8 x 8.9 in |
+| 19" 5:4 portrait, 180° | 14.8 x 11.9 in | 1024x640 | 853x640 | ~9.9 x 7.4 in |
+| 22" 16:9, 90° apart | 19.1 x 10.7 in | 1080x870 | 1080x810 | ~10.7 x 8.0 in |
 
-### Picking a panel — physical fit first, resolution second
+The 24" gives roughly **60% more picture per player** and uses the full 1080 in
+the dimension that matters. The portrait split wastes resolution.
 
-**Match the original diagonal and aspect.** A 19" 5:4 LCD has a screen area of
-roughly 15.1" × 12.1"; a 19" 4:3 CRT is about 15.2" × 11.4". Near enough that
-it drops into the existing bay and sits under the existing bezel.
+### The fit problem, if the original cabinet is kept intact
 
-This is why a cheap 1080p panel is the wrong buy despite the tempting
-resolution: a 19" 16:9 screen is about 16.5" × 9.3", so in portrait it is
-9.3" wide and 16.5" long — narrower *and* longer than the opening. It will not
-sit right behind the glass.
+A 24" panel is ~20.9 in long; the bay was cut for a 19" CRT at ~15.2 x 11.4 in.
+Depth is nearly identical, length is about **5.7 in over**. The custom cabinets
+that run 24" monitors were built around the monitor.
 
-So: a 19"–20" 4:3 or 5:4 LCD monitor. Old office panels, plentiful and cheap.
+Two things to check before concluding 24" needs cutting:
 
-**Measure the bay before buying anything.** Midway cocktails were commonly
-19"-class but not universally, and the mount depends on numbers this document
-does not have.
+- **Measure the carcass, not just the aperture.** The opening is usually
+  smaller than the interior. If the box is wide enough, the job is bezel and
+  glass rather than structural wood.
+- **A 22" panel is ~19.1 x 10.7 in**, and 20" 16:9 panels are smaller again.
+  One may clear the existing opening while still beating the portrait split.
 
-### Mounting
-
-A flat panel is far shallower than the CRT, so expect to build a plywood or
-bracket adapter to shim it up near the glass. Too low and the picture looks
-sunken and picks up reflections off the underside of the glass.
-
----
+Either way a flat panel is far shallower than the CRT, so expect to build a
+plywood or bracket adapter to shim it up near the glass. Too low and the
+picture looks sunken and catches reflections off the underside.
 
 ## How both players see it right-way-up: the split shader
 
@@ -75,9 +86,13 @@ sunken and picks up reflections off the underside of the glass.
 
 RetroArch's final shader pass maps the game's framebuffer onto the output
 viewport, and a fragment shader controls that mapping per pixel. Write one that
-samples the source texture twice: the near band drawn normally, the far band
-drawn rotated 180°. One game, one state, duplicated and flipped in the same
-frame.
+samples the source texture twice, once per player's half. The rotation depends
+on the layout: 90 degrees in opposite directions for the 24" split, or 0 and
+180 for the portrait split. One game, one state, drawn twice in the same frame.
+
+The two are the same shader with a different mapping — a 90 degree rotation
+swaps the axes when sampling where 180 negates both. Writing it parameterised
+costs nothing and means the layout decision does not have to be final.
 
 Costs one extra texture sample per pixel — nothing on a Pi 4. No second
 monitor, no compositor tricks, no netplay, no added input latency.
@@ -203,16 +218,21 @@ Numbers needed before anything can be ordered or written:
 
 ## Build order
 
-1. Open the cabinet, measure everything above, photograph the panels
-2. Remove and dispose of the CRT chassis safely
-3. Source and test-fit the panel; build the mount
-4. Write and test the split shader on a bench setup — does not need the cabinet
-5. Decide input, build or wire it, confirm both pads enumerate
-6. Pi 4 install: existing `install/install.sh`, plus rotation config
-7. Assemble, glass back on, play Street Fighter
+**Software first — this is the agreed order, not a suggestion.**
 
-Steps 4 and 5 are independent and can happen in either order while waiting on
-parts.
+1. Write the split shader and prove it on any machine with a screen. Needs no
+   cabinet, no Pi, no panel, nothing bought.
+2. Get the Pi 4; confirm the shader holds frame rate there with SNES.
+3. Open the cabinet, measure everything above, photograph the panels.
+4. Decide the layout (24" vs portrait) and therefore whether the cabinet gets
+   cut, rebuilt, or left alone.
+5. Remove and dispose of the CRT chassis safely.
+6. Source and test-fit the panel; build the mount.
+7. Decide input, build or wire it, confirm both pads enumerate.
+8. Assemble, glass back on, play Street Fighter.
+
+Steps 1 and 2 cost nothing but time and settle whether the whole idea works.
+Everything expensive or irreversible sits behind them.
 
 ---
 
