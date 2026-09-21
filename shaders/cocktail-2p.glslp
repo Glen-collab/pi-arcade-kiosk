@@ -1,0 +1,9 @@
+shaders = "1"
+
+shader0 = "cocktail-2p.glsl"
+# Nearest, matching the kiosk's video_smooth = false. The rotation is an exact
+# 90 degrees so nothing is resampled by the turn itself; only the fit scales.
+filter_linear0 = "false"
+# Render the pass at full viewport size — this pass IS the layout.
+scale_type0 = "viewport"
+scale0 = "1.0"

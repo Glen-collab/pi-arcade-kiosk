@@ -1,9 +1,12 @@
 # Ms. Pac-Man cocktail refab — build plan
 
-Status: **not built.** Nothing here is wired up yet. The only executable piece
-in the repo is `launcher/dual_screen.sh --check`, a preflight for the
-two-monitor approach this plan now supersedes — kept because it still answers
-a useful question, not because it is the path.
+Status: **phase 1 in progress.** The two-player shader is written
+(`shaders/cocktail-2p.glslp`) and its geometry is verified in simulation, but
+it has not run in RetroArch on real hardware yet. No cabinet work started.
+
+`launcher/dual_screen.sh --check` is a preflight for a two-monitor approach
+this plan superseded — kept because it still answers a useful question
+cheaply, not because it is the path.
 
 The target: a cocktail cabinet running a Pi 4, with two players sitting
 opposite each other and both reading the same game right-way-up on one screen.
@@ -12,9 +15,25 @@ Street Fighter across the table.
 The cabinet is an original Ms. Pac-Man cocktail, but **cutting it or building a
 new one are both on the table**, so the cabinet does not constrain the design.
 
-**Agreed sequencing: prove the software first.** The shader can be written and
-tested on any machine with a screen. Nothing gets bought, cut or built until it
-demonstrably works. Pi 4 pending.
+**Agreed sequencing: prove the software first.** Nothing gets bought, cut or
+built until the shader demonstrably works. Pi 4 pending.
+
+### Phases
+
+**Phase 1 — two players, hardware already owned.** A Dell S2440L (24", 1080p,
+IPS, 12V 3.33A brick) Glen already has. Two seats at the short ends. This is
+what gets built.
+
+**Later, if phase 1 earns it.** Four players around the table with views at
+0/90/180/270 — the shader is written with the split parameterised, so it is
+the same code path. Four-player wants a bigger panel: on a 24" each player
+gets about 8 x 6 in, on a 32" about the same, and only a 43" makes it roomy.
+It also wants an **arcade core** in the kiosk, because the four-player Turtles
+games (TMNT: The Arcade Game, Turtles in Time) and Gauntlet II are arcade
+ROMs, not console ports — `ALLOWED_SYSTEMS` has no MAME/FBNeo entry yet.
+A pool-table layout with recessed drink holders in the rails is the target
+form. **Do not cut drink holes over the electronics bay** — put them outboard
+of the glass, sealed, draining outside.
 
 ---
 
@@ -108,6 +127,36 @@ Implementation notes for when it gets written:
   players the same picture anyway.
 
 **Not written yet.** This is the next build step.
+
+---
+
+## The shader
+
+`shaders/cocktail-2p.glslp` + `cocktail-2p.glsl`.
+
+Splits the viewport left/right and draws the same frame into each half rotated
+90 degrees in opposite directions, for players seated at the two short ends.
+Letterboxing is done inside the shader, per half, because RetroArch would
+otherwise letterbox the panel once as a whole.
+
+On a 1920x1080 panel each player gets a 1080x810 image with 75px of black
+either side of their half — about 15% of the panel unused, which is the cost
+of fitting 4:3 into a half-panel.
+
+**GLSL, not .slang.** The Pi 4's V3D stack does not give RetroArch a glcore
+context, and the `gl` driver the kiosk already configures loads `.glsl`.
+
+RetroArch also needs `video_force_aspect = "false"` so the viewport is the
+whole screen — otherwise RetroArch letterboxes first and the shader only sees
+the letterboxed region.
+
+### Verified so far
+
+The fragment maths was replayed in a simulation against an asymmetric test
+frame and the layout is correct: each half puts the game's "up" away from its
+own player, and left/right land on the right hands. **Not yet run in
+RetroArch** — that is the next step, and it needs nothing but the monitor and
+a Windows RetroArch install.
 
 ---
 
@@ -220,8 +269,10 @@ Numbers needed before anything can be ordered or written:
 
 **Software first — this is the agreed order, not a suggestion.**
 
-1. Write the split shader and prove it on any machine with a screen. Needs no
-   cabinet, no Pi, no panel, nothing bought.
+1. ~~Write the split shader~~ — done, geometry verified in simulation.
+   **Next: run it in RetroArch on Windows against the S2440L.** Needs no
+   cabinet, no Pi, nothing bought. Load `cocktail-2p.glslp`, set
+   `video_force_aspect = false`, start Contra, walk round the desk.
 2. Get the Pi 4; confirm the shader holds frame rate there with SNES.
 3. Open the cabinet, measure everything above, photograph the panels.
 4. Decide the layout (24" vs portrait) and therefore whether the cabinet gets
