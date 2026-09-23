@@ -69,11 +69,14 @@ void main() {
     // West seat faces east: their "up" is +x, their "right" is -y.
     // East seat faces west: their "up" is -x, their "right" is +y.
     // The two are 180 degrees apart, which is what puts them face to face.
+    // Which half serves which seat was measured, not derived: the first build
+    // had these two swapped, so each player was reading the half meant for the
+    // person opposite - a clean rotation, just 180 degrees out for the viewer.
     vec2 p;
     if (outUV.x < 0.5) {
-        p = vec2(1.0 - outUV.y, outUV.x * 2.0);
+        p = vec2(outUV.y, 1.0 - outUV.x * 2.0);
     } else {
-        p = vec2(outUV.y, (1.0 - outUV.x) * 2.0);
+        p = vec2(1.0 - outUV.y, (outUV.x - 0.5) * 2.0);
     }
 
     // Letterbox the game inside that view rather than stretching it. Done here
@@ -91,10 +94,17 @@ void main() {
         return;
     }
 
-    // Cores render into a texture that is usually padded larger than the
-    // frame, so the visible region is InputSize/TextureSize, not the whole
-    // texture. Skipping this scale is the classic way to get a correct-looking
-    // layout full of garbage padding.
+    // Cores render into a texture usually padded larger than the frame, so the
+    // visible region is InputSize/TextureSize, not the whole texture. Skipping
+    // this scale is the classic way to get a correct-looking layout full of
+    // garbage padding.
+    //
+    // No vertical flip here, deliberately. An earlier build added one on the
+    // theory that gl_FragCoord's bottom-left origin disagreed with the texture.
+    // Measuring against a known-good capture showed the opposite: the mapping
+    // was already a clean rotation, and the flip INTRODUCED a mirror. A
+    // rotation can never mirror, so mirrored output always means an odd number
+    // of flips - the fix is to remove one, not add one.
     gl_FragColor = texture2D(Texture, g * (InputSize / TextureSize));
 }
 
