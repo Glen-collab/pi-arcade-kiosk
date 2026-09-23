@@ -1,6 +1,6 @@
 #!/bin/bash
 # Launch a ROM with RetroArch + the appropriate libretro core.
-# Usage: launch_game.sh <system> <rom-filename> [joypad-index] [num-users] [rotation]
+# Usage: launch_game.sh <system> <rom-filename> [joypad-index] [num-users] [rotation] [cocktail]
 # Example: launch_game.sh nes "Super Mario Bros (U).nes" 1 2
 #
 # joypad-index is optional. When set, Player 1 in RetroArch is pinned
@@ -22,11 +22,23 @@ ROM="$2"
 JOYPAD_INDEX="$3"
 NUM_USERS="$4"
 ROTATION="$5"
+COCKTAIL="$6"
 
 if [ -z "$SYSTEM" ] || [ -z "$ROM" ]; then
   echo "Usage: $0 <system> <rom-filename> [joypad-index] [num-users]"
   exit 1
 fi
+
+# Cocktail split shader, per launch rather than globally. Setting
+# video_shader_enable in retroarch.cfg would put the split on every game
+# forever, including when one person is playing alone at a desk; this keeps
+# the cabinet's normal behaviour untouched and turns the split on only when
+# the picker asks for it.
+COCKTAIL_PRESET="${COCKTAIL_PRESET:-$HOME/.config/retroarch/shaders/cocktail-2p.glslp}"
+case "$COCKTAIL" in
+  1|true|yes) COCKTAIL=1 ;;
+  *)          COCKTAIL=0 ;;
+esac
 
 # Sanitize ROTATION: RetroArch's video_rotation is 0-3 in 90-degree steps.
 # Anything else (including empty) means "leave the configured orientation
@@ -135,6 +147,18 @@ fi
   if [ -n "$ROTATION" ]; then
     echo 'video_allow_rotate = "true"'
     echo "video_rotation = \"$ROTATION\""
+  fi
+
+  # The shader does its own per-half letterboxing, so RetroArch must not
+  # letterbox the panel first — it would only do it once, for the whole
+  # screen, and the shader would then be laying out inside an already-shrunk
+  # viewport.
+  if [ "$COCKTAIL" = "1" ] && [ -f "$COCKTAIL_PRESET" ]; then
+    echo 'video_shader_enable = "true"'
+    echo "video_shader = \"$COCKTAIL_PRESET\""
+    echo 'video_force_aspect = "false"'
+  else
+    echo 'video_shader_enable = "false"'
   fi
 
   # PS1-style pads share the 0810:e501 chip with the 2-button NES pads, so

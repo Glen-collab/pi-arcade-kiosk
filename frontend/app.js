@@ -76,7 +76,7 @@ function makeTile(game, opts = {}) {
   // tile: it tells you where to sit before you start, not after.
   let seat = "";
   if (tableMode && game.seating) {
-    const label = { "alternating": "TAKE TURNS", "either-side": "ANY SEAT", "same-side": "SIT TOGETHER" }[game.seating];
+    const label = { "split-screen": "SPLIT VIEW", "single-player": "1 PLAYER" }[game.seating];
     if (label) seat = `<span class="tile-seat seat-${game.seating}">${label}</span>`;
   }
   tile.innerHTML = `${rank}${plays}${seat}<div class="tile-title">${escapeHtml(game.title)}</div>`;
@@ -139,6 +139,8 @@ async function launch(game) {
   const activeCount = countActivePads();
   if (activeCount > 0) body.num_users = activeCount;
   if (tableRotation !== null) body.rotation = tableRotation;
+  // Table mode turns on the split shader for this launch only.
+  if (tableMode) body.cocktail = 1;
   try {
     const res = await fetch("/api/launch", {
       method: "POST",

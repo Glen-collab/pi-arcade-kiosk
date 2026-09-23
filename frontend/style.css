@@ -262,9 +262,10 @@ body.system-snes .tile.top { border-color: rgba(184, 141, 255, 0.4); }
   background: rgba(0, 0, 0, 0.55);
   color: #fff;
 }
-.seat-alternating { background: rgba(32, 96, 168, 0.85); }
-.seat-either-side { background: rgba(28, 132, 72, 0.85); }
-.seat-same-side   { background: rgba(120, 66, 12, 0.85); }
+/* Only the exceptions get a badge. "shared" is the overwhelming default and
+   labelling 1,286 tiles identically would be noise, not information. */
+.seat-split-screen  { background: rgba(150, 60, 12, 0.85); }
+.seat-single-player { background: rgba(60, 60, 70, 0.85); }
 
 /* The picker itself is read by whoever is choosing, so it is NOT rotated —
    rotation applies to the game output via RetroArch. This only widens the

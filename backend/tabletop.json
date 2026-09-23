@@ -1,53 +1,44 @@
 {
-  "_comment": "Cocktail-table seating hints, matched by slugified clean title (the same slug derive_id builds), so ROM dump suffixes like (U) or [!] don't matter. Three seating values, and the distinction is the whole point of the feature: 'alternating' = turn-based, so the screen can flip 180 between turns and both players read it right-way-up from opposite sides — this is what real Pac-Man cocktail cabinets did. 'same-side' = simultaneous play on one shared orientation, so both players must sit on the SAME side of the table; flipping mid-game would blind one of them. 'either-side' = the playfield is radially symmetric or orientation-agnostic, so opposite seats work with no flip at all. Warlords is the classic 'either-side' game and it is an Atari arcade title, not an NES one — the NES library has essentially nothing in that category, which is why the list below is empty. Unlisted games default to same-side.",
+  "_comment": "How a game behaves on the cocktail table, matched by slugified clean title so ROM dump suffixes like (U) or [!] do not matter. This file was rewritten once the split shader existed, and the old categories were deleted rather than adjusted: they described a cabinet that could only flip the whole screen between turns, and under that constraint almost nothing worked face to face. The shader changed the question entirely. What matters now is only how the GAME's camera works, because the shader draws the same frame into both halves and the rotations cancel for each seated player.",
 
-  "alternating": [
-    "golf",
-    "nes-open-tournament-golf",
-    "anticipation",
-    "jeopardy",
-    "wheel-of-fortune",
-    "monopoly",
-    "pinball",
-    "track-field",
-    "track-field-ii",
-    "excitebike",
-    "bases-loaded",
-    "mach-rider",
-    "slalom",
-    "10-yard-fight"
+  "_default": "shared",
+
+  "_seating_values": {
+    "shared": "One camera, one field, both players already meant to watch the same picture. The overwhelming majority of the NES and SNES libraries, and the reason this list is an exception list rather than an inclusion list.",
+    "split-screen": "The game renders its own per-player viewports into the single frame. Still playable — each player sees the whole frame upright in their own half — but their viewport is halved again, so it lands around 1080x405. Cramped, not broken. There is no way to show a player only their own viewport: the core hands us one finished image.",
+    "single-player": "No two-player mode at all. The split just mirrors the same picture to an empty seat. Harmless, and listed only so the picker can say so."
+  },
+
+  "split_screen": [
+    "super-mario-kart",
+    "top-gear",
+    "top-gear-2",
+    "top-gear-3000",
+    "stunt-race-fx",
+    "street-racer",
+    "spy-vs-spy"
   ],
 
-  "same_side": [
-    "jackal",
-    "ikari-warriors",
-    "ikari-warriors-ii-victory-road",
-    "gauntlet",
-    "gauntlet-ii",
-    "smash-tv",
-    "micro-machines",
-    "super-off-road",
-    "ivan-ironman-stewarts-super-off-road",
-    "rampart",
-    "battle-city",
-    "bomberman-ii",
-    "contra",
-    "super-c",
-    "double-dragon-ii-the-revenge",
-    "double-dragon-iii-the-sacred-stones",
-    "river-city-ransom",
-    "nintendo-world-cup",
-    "tecmo-bowl",
-    "tecmo-super-bowl",
-    "ice-hockey",
-    "blades-of-steel",
-    "baseball-stars",
-    "balloon-fight",
-    "bubble-bobble",
-    "mario-bros",
-    "dr-mario",
-    "tetris"
+  "single_player": [
+    "the-legend-of-zelda",
+    "legend-of-zelda-the",
+    "super-metroid",
+    "castlevania",
+    "super-castlevania-iv",
+    "mega-man",
+    "metroid",
+    "earthbound",
+    "final-fantasy-iii",
+    "chrono-trigger",
+    "super-mario-world",
+    "super-mario-bros-3",
+    "donkey-kong-country",
+    "f-zero",
+    "pilotwings",
+    "star-fox",
+    "actraiser",
+    "mike-tysons-punch-out"
   ],
 
-  "either_side": []
+  "_maintenance": "Both lists are hand-written and certainly incomplete against 1,300 ROMs. That is fine: an unlisted game defaults to `shared`, which is right far more often than not, and a wrong guess costs a cramped view rather than a broken one. To correct a single ROM without touching this file, add \"seating\" to its entry in games.json — a per-ROM override wins."
 }

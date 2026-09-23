@@ -76,8 +76,10 @@ def load_overrides():
 def load_tabletop():
     """slug -> seating hint for cocktail-table mode.
 
-    Cached per call like load_overrides; the file is a few dozen lines and
-    scan_games already re-reads its siblings on every request.
+    An EXCEPTION list, not an inclusion list. The split shader draws the same
+    frame into both halves and the rotations cancel for each seated player, so
+    any game with a single shared camera works face to face — which is nearly
+    the whole library. Only the games that behave differently are listed.
     """
     if not os.path.isfile(TABLETOP_FILE):
         return {}
@@ -87,9 +89,8 @@ def load_tabletop():
     except Exception:
         return {}
     seating = {}
-    for key, value in (("alternating", "alternating"),
-                       ("same_side", "same-side"),
-                       ("either_side", "either-side")):
+    for key, value in (("split_screen", "split-screen"),
+                       ("single_player", "single-player")):
         for slug in data.get(key, []):
             seating[slug] = value
     return seating
@@ -137,8 +138,13 @@ def scan_games(only_system=None, tabletop_only=False):
             # A per-ROM "seating" override in games.json wins over the
             # curated slug list, so a ROM whose title doesn't match can
             # still be classified without editing tabletop.json.
-            seating = override.get("seating") or seating_map.get(game_id, "same-side")
-            if tabletop_only and seating not in ("alternating", "either-side"):
+            seating = override.get("seating") or seating_map.get(game_id, "shared")
+            # ?tabletop=1 hides only what genuinely plays badly across a
+            # table, which is split-screen. Single-player games stay: someone
+            # sitting alone still wants Zelda, and the split just mirrors the
+            # same picture to the empty seat. The label is for the tile, not
+            # a reason to hide the game.
+            if tabletop_only and seating == "split-screen":
                 continue
             games.append({
                 "id": game_id,
@@ -217,6 +223,10 @@ def launch():
         except (TypeError, ValueError):
             pass
 
+    # Cocktail split: on per launch, so the shader never leaks into ordinary
+    # single-screen play.
+    cocktail = "1" if data.get("cocktail") in (True, 1, "1", "true", "yes") else ""
+
     if system not in ALLOWED_SYSTEMS:
         return jsonify({"ok": False, "error": "invalid system"}), 400
     if "/" in rom or "\\" in rom or ".." in rom or not rom:
@@ -243,9 +253,9 @@ def launch():
 
     # 3rd arg = joypad index, 4th = num_users. launch_game.sh tolerates
     # either being empty so positional order stays predictable.
-    # 5th arg = rotation. Positional like the rest; the launcher tolerates
-    # an empty string and leaves RetroArch's configured orientation alone.
-    cmd = [LAUNCHER, system, rom, joypad_index or "", num_users or "", rotation or ""]
+    # 5th arg = rotation, 6th = cocktail. Positional like the rest; the
+    # launcher tolerates empty strings for both.
+    cmd = [LAUNCHER, system, rom, joypad_index or "", num_users or "", rotation or "", cocktail]
     current_proc = subprocess.Popen(cmd)
     return jsonify({"ok": True, "plays": new_count})
 
