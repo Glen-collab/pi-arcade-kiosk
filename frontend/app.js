@@ -522,6 +522,9 @@ let menuOpen = false;
 let menuRow = 0;
 let settings = { volume: null, brightness: null };
 let navHeld = false;
+// Set whenever a game is running, so the combo that quit it cannot roll
+// straight into opening the settings menu. Cleared on a clean release.
+let comboMustRelease = true;
 
 function overlayEl() {
   let el = document.getElementById("shutdown-overlay");
@@ -647,11 +650,26 @@ function pollSettingsMenu() {
   // Select+Start and uses it to exit, so the picker must ignore it then or
   // quitting a game becomes impossible.
   const el = overlayEl();
-  if (wasPlaying) { shutdownHeldSince = 0; el.hidden = true; return; }
+  if (wasPlaying) {
+    shutdownHeldSince = 0;
+    // Quitting a game IS this combo. The player is still holding it at the
+    // moment RetroArch dies, so without this latch the picker sees the combo
+    // the instant it regains control and opens settings on someone who was
+    // only trying to get back to the grid. Require a clean release first.
+    comboMustRelease = true;
+    el.hidden = true;
+    return;
+  }
 
   const held = pads.some(
     gp => gp.buttons[SELECT_BTN]?.pressed && gp.buttons[START_BTN]?.pressed
   );
+  if (comboMustRelease) {
+    if (!held) comboMustRelease = false;   // released: arm it again
+    shutdownHeldSince = 0;
+    el.hidden = true;
+    return;
+  }
   if (!held) { shutdownHeldSince = 0; if (!menuOpen) el.hidden = true; return; }
 
   const now = Date.now();
