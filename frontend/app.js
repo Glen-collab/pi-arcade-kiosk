@@ -518,7 +518,12 @@ const SELECT_BTN = 8, START_BTN = 9;
 let shutdownHeldSince = 0;
 let shuttingDown = false;
 
-function shutdownOverlay() {
+let menuOpen = false;
+let menuRow = 0;
+let settings = { volume: null, brightness: null };
+let navHeld = false;
+
+function overlayEl() {
   let el = document.getElementById("shutdown-overlay");
   if (!el) {
     el = document.createElement("div");
@@ -529,35 +534,140 @@ function shutdownOverlay() {
   return el;
 }
 
-function pollShutdownCombo() {
-  if (shuttingDown) return;
-  const el = shutdownOverlay();
+// Rows are built from what the machine can actually do. Brightness rides
+// DDC/CI, which plenty of monitors ignore, so /api/settings returns null for
+// anything unavailable and that row simply is not offered.
+function menuRows() {
+  const rows = [];
+  if (settings.volume !== null)     rows.push({ key: "volume",     label: "VOLUME" });
+  if (settings.brightness !== null) rows.push({ key: "brightness", label: "BRIGHTNESS" });
+  rows.push({ key: "shutdown", label: "SHUT DOWN" });
+  rows.push({ key: "close",    label: "BACK TO GAMES" });
+  return rows;
+}
 
-  // Only on the picker. While a game is up, RetroArch owns the combo and uses
-  // it to exit — shutting down instead would make quitting a game impossible.
+function drawMenu() {
+  const el = overlayEl();
+  const rows = menuRows();
+  menuRow = Math.max(0, Math.min(menuRow, rows.length - 1));
+  el.innerHTML = `<div class="menu-box">
+    <div class="menu-title">SETTINGS</div>
+    ${rows.map((r, i) => {
+      const sel = i === menuRow ? " selected" : "";
+      let right = "";
+      if (r.key === "volume" || r.key === "brightness") {
+        const v = settings[r.key];
+        const filled = Math.round(v / 10);
+        right = `<span class="menu-bar">${"#".repeat(filled)}${".".repeat(10 - filled)}</span>
+                 <span class="menu-val">${v}%</span>`;
+      }
+      return `<div class="menu-row${sel}"><span>${r.label}</span><span>${right}</span></div>`;
+    }).join("")}
+    <div class="menu-hint">D-PAD to move &middot; LEFT/RIGHT to adjust &middot; A to pick &middot; B to close</div>
+  </div>`;
+  el.hidden = false;
+}
+
+async function refreshSettings() {
+  try { settings = await (await fetch("/api/settings")).json(); } catch {}
+}
+
+async function adjust(key, delta) {
+  const cur = settings[key];
+  if (cur === null) return;
+  const next = Math.max(0, Math.min(100, cur + delta));
+  settings[key] = next;
+  drawMenu();
+  try {
+    await fetch(`/api/${key}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ value: next }),
+    });
+  } catch {}
+}
+
+async function openMenu() {
+  await refreshSettings();
+  menuOpen = true;
+  menuRow = 0;
+  drawMenu();
+}
+
+function closeMenu() {
+  menuOpen = false;
+  overlayEl().hidden = true;
+  lastInput = Date.now();   // don't let the attract timer fire on the way out
+}
+
+function doShutdown() {
+  shuttingDown = true;
+  const el = overlayEl();
+  el.innerHTML = `<div class="menu-box"><div class="menu-title">SHUTTING DOWN</div>
+    <div class="menu-hint">WAIT FOR THE SCREEN TO GO BLACK, THEN SWITCH OFF</div></div>`;
+  el.hidden = false;
+  fetch("/api/shutdown", { method: "POST" }).catch(() => {});
+}
+
+function pollSettingsMenu() {
+  if (shuttingDown) return;
+  const pads = listGamepads();
+
+  if (menuOpen) {
+    let dir = null, confirm = false, back = false;
+    for (const gp of pads) {
+      if (gp.buttons[12]?.pressed || (gp.axes[1] ?? 0) < -0.5) dir = "up";
+      else if (gp.buttons[13]?.pressed || (gp.axes[1] ?? 0) > 0.5) dir = "down";
+      else if (gp.buttons[14]?.pressed || (gp.axes[0] ?? 0) < -0.5) dir = "left";
+      else if (gp.buttons[15]?.pressed || (gp.axes[0] ?? 0) > 0.5) dir = "right";
+      if (gp.buttons[0]?.pressed || gp.buttons[1]?.pressed) confirm = true;
+      if (gp.buttons[2]?.pressed || gp.buttons[3]?.pressed) back = true;
+    }
+    // Edge-trigger everything: a held direction must not run the volume to
+    // zero, and a held A must not re-fire on the row underneath.
+    if (!dir && !confirm && !back) { navHeld = false; return; }
+    if (navHeld) return;
+    navHeld = true;
+
+    const rows = menuRows();
+    const row = rows[menuRow];
+    if (dir === "up")   { menuRow = (menuRow - 1 + rows.length) % rows.length; drawMenu(); }
+    if (dir === "down") { menuRow = (menuRow + 1) % rows.length; drawMenu(); }
+    if (dir === "left"  && (row.key === "volume" || row.key === "brightness")) adjust(row.key, -5);
+    if (dir === "right" && (row.key === "volume" || row.key === "brightness")) adjust(row.key, +5);
+    if (back) closeMenu();
+    if (confirm) {
+      if (row.key === "close") closeMenu();
+      else if (row.key === "shutdown") doShutdown();
+    }
+    return;
+  }
+
+  // Closed: watch for the open combo. While a game is up RetroArch owns
+  // Select+Start and uses it to exit, so the picker must ignore it then or
+  // quitting a game becomes impossible.
+  const el = overlayEl();
   if (wasPlaying) { shutdownHeldSince = 0; el.hidden = true; return; }
 
-  const held = listGamepads().some(
+  const held = pads.some(
     gp => gp.buttons[SELECT_BTN]?.pressed && gp.buttons[START_BTN]?.pressed
   );
-  if (!held) { shutdownHeldSince = 0; el.hidden = true; return; }
+  if (!held) { shutdownHeldSince = 0; if (!menuOpen) el.hidden = true; return; }
 
   const now = Date.now();
   if (!shutdownHeldSince) shutdownHeldSince = now;
   const left = SHUTDOWN_HOLD_MS - (now - shutdownHeldSince);
-
   if (left > 0) {
     el.hidden = false;
-    el.textContent = `SHUTTING DOWN IN ${Math.ceil(left / 1000)}...  RELEASE TO CANCEL`;
+    el.innerHTML = `<div class="menu-box"><div class="menu-title">SETTINGS IN ${Math.ceil(left / 1000)}...</div>
+      <div class="menu-hint">RELEASE TO CANCEL</div></div>`;
     return;
   }
-
-  shuttingDown = true;
-  el.hidden = false;
-  el.textContent = "SHUTTING DOWN - WAIT FOR THE SCREEN TO GO BLACK, THEN SWITCH OFF";
-  fetch("/api/shutdown", { method: "POST" }).catch(() => {});
+  shutdownHeldSince = 0;
+  navHeld = true;          // don't let the same press select a row instantly
+  openMenu();
 }
-setInterval(pollShutdownCombo, 100);
+setInterval(pollSettingsMenu, 100);
 
 function noteInput() { lastInput = Date.now(); }
 document.addEventListener("keydown",   noteInput, { capture: true });

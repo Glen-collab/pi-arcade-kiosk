@@ -285,6 +285,85 @@ def status_endpoint():
     })
 
 
+def _session_env():
+    """Environment that can reach the desktop session's PipeWire.
+
+    pi-arcade.service runs as User=pi but is SYSTEM scoped, so systemd does not
+    propagate XDG_RUNTIME_DIR or the session bus — the same gap launch_game.sh
+    works around for Wayland. Without these, wpctl cannot find PipeWire and
+    every volume call silently returns nothing.
+    """
+    env = dict(os.environ)
+    uid = os.getuid()
+    env.setdefault("XDG_RUNTIME_DIR", f"/run/user/{uid}")
+    env.setdefault("DBUS_SESSION_BUS_ADDRESS",
+                   f"unix:path=/run/user/{uid}/bus")
+    return env
+
+
+def _run(cmd, timeout=5):
+    """Run a short command, return stdout or None. Settings must never take the
+    picker down: a missing ddcutil or a monitor that ignores DDC should grey out
+    a row, not throw."""
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True,
+                           timeout=timeout, env=_session_env())
+        return r.stdout if r.returncode == 0 else None
+    except Exception:
+        return None
+
+
+def _get_volume():
+    out = _run(["wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"])
+    if not out:
+        return None
+    m = re.search(r"([0-9]*[.]?[0-9]+)", out)
+    return int(round(float(m.group(1)) * 100)) if m else None
+
+
+def _get_brightness():
+    out = _run(["sudo", "ddcutil", "getvcp", "10", "--brief"], timeout=10)
+    if not out:
+        return None
+    parts = out.split()
+    # brief format: VCP 10 C <current> <max>
+    return int(parts[3]) if len(parts) >= 4 and parts[3].isdigit() else None
+
+
+@app.route("/api/settings")
+def get_settings():
+    """What the settings overlay can offer on THIS machine.
+
+    Brightness rides DDC/CI over the HDMI cable, which many monitors ignore —
+    the S2440L answers reads and brightness writes but refuses power commands.
+    Report null when unavailable so the UI can hide the row rather than
+    offering a control that does nothing.
+    """
+    return jsonify({"volume": _get_volume(), "brightness": _get_brightness()})
+
+
+@app.route("/api/volume", methods=["POST"])
+def set_volume():
+    data = request.get_json(silent=True) or {}
+    try:
+        pct = max(0, min(100, int(data.get("value"))))
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "bad value"}), 400
+    _run(["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", f"{pct}%"])
+    return jsonify({"ok": True, "volume": _get_volume()})
+
+
+@app.route("/api/brightness", methods=["POST"])
+def set_brightness():
+    data = request.get_json(silent=True) or {}
+    try:
+        pct = max(0, min(100, int(data.get("value"))))
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "bad value"}), 400
+    _run(["sudo", "ddcutil", "setvcp", "10", str(pct)], timeout=10)
+    return jsonify({"ok": True, "brightness": pct})
+
+
 @app.route("/api/shutdown", methods=["POST"])
 def shutdown():
     """Clean poweroff, so the cabinet's mains switch never has to yank a

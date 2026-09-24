@@ -299,3 +299,47 @@ body.table-mode .tile-title { font-size: 1.05rem; }
   letter-spacing: 0.08em;
   z-index: 9999;
 }
+
+/* Settings menu. Large type and a wide box because this is read across a
+   table, at an angle, through glass — not at desk distance. */
+#shutdown-overlay .menu-box {
+  min-width: 46rem;
+  padding: 2rem 2.5rem;
+  background: #0b0b12;
+  border: 2px solid #ff2e63;
+  border-radius: 6px;
+}
+#shutdown-overlay .menu-title {
+  font-size: 1.6rem;
+  letter-spacing: 0.14em;
+  color: #ff2e63;
+  margin-bottom: 1.4rem;
+}
+#shutdown-overlay .menu-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+  font-size: 1.5rem;
+  color: #cfd0e0;
+  padding: 0.6rem 0.8rem;
+  border: 2px solid transparent;
+}
+#shutdown-overlay .menu-row.selected {
+  color: #fff;
+  border-color: #ff2e63;
+  background: rgba(255, 46, 99, 0.12);
+}
+#shutdown-overlay .menu-bar {
+  font-family: monospace;
+  letter-spacing: 0.15em;
+  color: #46e0a0;
+  margin-right: 1rem;
+}
+#shutdown-overlay .menu-val { color: #8a8ba0; }
+#shutdown-overlay .menu-hint {
+  margin-top: 1.4rem;
+  font-size: 0.95rem;
+  color: #6f7086;
+  letter-spacing: 0.06em;
+}
