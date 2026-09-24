@@ -177,6 +177,40 @@ async function exitToWorkouts() {
 }
 exitTile.addEventListener("click", exitToWorkouts);
 
+// On a BSA gym TV the top tile hands the display back to the workout view. A
+// standalone cabinet has no switch script, so that tile is dead weight there —
+// swap it for a system switcher, which is what you actually want when one
+// picker holds two libraries. /api/status reports which case we are in, so the
+// same build serves both installs.
+async function configureTopTile() {
+  let st;
+  try { st = await (await fetch("/api/status")).json(); } catch { return; }
+  if (st.workouts_available) return;            // gym TV: leave it alone
+
+  const systems = st.systems || [];
+  if (!systems.length) { exitTile.hidden = true; return; }
+
+  const section = document.getElementById("exit-section");
+  section.innerHTML = "";
+  const mk = (label, sys) => {
+    const b = document.createElement("button");
+    b.className = "tile exit-tile" + (systemFilter === sys ? " system-current" : "");
+    b.dataset.nav = "0";
+    b.innerHTML = `<span class="tile-title">${label}</span>`;
+    b.addEventListener("click", () => {
+      // Preserve every other parameter; only the system changes. Losing
+      // table=1 here would silently drop the cabinet out of cocktail mode.
+      const p = new URLSearchParams(window.location.search);
+      if (sys) p.set("system", sys); else p.delete("system");
+      window.location.search = p.toString();
+    });
+    return b;
+  };
+  section.appendChild(mk("ALL GAMES", ""));
+  for (const sys of systems) section.appendChild(mk(sys.toUpperCase(), sys));
+}
+configureTopTile();
+
 // ── Navigation ────────────────────────────────────────────────
 // Rebuilds the ordered tile list. Called after every re-render so
 // keyboard/gamepad input always sees the current grid.

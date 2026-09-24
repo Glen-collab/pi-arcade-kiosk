@@ -267,7 +267,22 @@ def status_endpoint():
     demo) and reset its idle timer accordingly."""
     global current_proc
     playing = current_proc is not None and current_proc.poll() is None
-    return jsonify({"playing": playing})
+    # The "back to workouts" tile only makes sense on a BSA gym TV, where a
+    # switch script exists to hand the display back to the workout view. A
+    # standalone cabinet has no such script, and the tile would just error. Say
+    # so here rather than hardcoding per-install, so one codebase serves both.
+    return jsonify({
+        "playing": playing,
+        "workouts_available": os.path.isfile(SWITCH_TO_WORKOUTS),
+        "systems": sorted(
+            s for s in ALLOWED_SYSTEMS
+            if os.path.isdir(os.path.join(ROMS_DIR, s))
+            and any(
+                f.lower().endswith(ROM_EXTS[s])
+                for f in os.listdir(os.path.join(ROMS_DIR, s))
+            )
+        ),
+    })
 
 
 @app.route("/api/quit", methods=["POST"])

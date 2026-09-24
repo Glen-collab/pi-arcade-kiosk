@@ -273,3 +273,12 @@ body.system-snes .tile.top { border-color: rgba(184, 141, 255, 0.4); }
    your eyes than on an upright. */
 body.table-mode .tile { min-height: 5.5rem; }
 body.table-mode .tile-title { font-size: 1.05rem; }
+
+/* System switcher replaces the workouts tile on a standalone cabinet. Sits in
+   a row rather than one full-width bar, since there are now several. */
+#exit-section { display: flex; gap: 10px; }
+#exit-section .exit-tile { flex: 1; }
+#exit-section .system-current {
+  border-color: #ff2e63;
+  box-shadow: inset 0 0 0 1px #ff2e63;
+}
