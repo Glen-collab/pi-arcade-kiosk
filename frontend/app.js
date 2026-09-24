@@ -130,6 +130,16 @@ async function launch(game) {
   // its normal cadence; this is just to close the launch-race window.
   wasPlaying = true;
   status.textContent = `LAUNCHING ${game.title.toUpperCase()}...`;
+  if (game.system === "table") {
+    // Different path: the backend rotates the panel and points the kiosk loop
+    // at the game. Chromium is replaced, so nothing after this runs.
+    fetch("/api/launch-table", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rom: game.rom }),
+    }).catch(() => {});
+    return;
+  }
   const body = { system: game.system, rom: game.rom };
   if (lastLaunchGamepadIdx >= 0) body.joypad_index = lastLaunchGamepadIdx;
   // Number of pads that pressed something in the last 30 seconds. The
@@ -208,6 +218,10 @@ async function configureTopTile() {
   };
   section.appendChild(mk("ALL GAMES", ""));
   for (const sys of systems) section.appendChild(mk(sys.toUpperCase(), sys));
+  // Glen's own two-player games. Separate from the emulated systems because
+  // they take a different launch path entirely — no core, no shader, and the
+  // panel rotates 90 degrees for them.
+  if (st.has_table) section.appendChild(mk("TABLE ARCADE", "table"));
 }
 configureTopTile();
 
@@ -437,6 +451,14 @@ async function load() {
   } catch (e) { /* fall through — picker still loads */ }
   status.textContent = "LOADING...";
   try {
+    // The table-arcade games live outside the ROM scan entirely.
+    if (systemFilter === "table") {
+      const res = await fetch("/api/table-games");
+      allGames = (await res.json()).games;
+      renderTop10(); renderAll(search.value || "");
+      status.textContent = `${allGames.length} TABLE GAMES`;
+      return;
+    }
     const q = [];
     if (systemFilter) q.push(`system=${encodeURIComponent(systemFilter)}`);
     if (tableMode) q.push("tabletop=1");

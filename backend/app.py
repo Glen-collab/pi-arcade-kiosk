@@ -19,7 +19,7 @@ import subprocess
 import urllib.request
 from threading import Lock
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, Response, jsonify, request, send_from_directory
 
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRONTEND_DIR = os.path.join(PROJECT_DIR, "frontend")
@@ -28,6 +28,10 @@ OVERRIDES_FILE = os.path.join(PROJECT_DIR, "backend", "games.json")
 PLAYS_FILE = os.path.join(PROJECT_DIR, "backend", "plays.json")
 TABLETOP_FILE = os.path.join(PROJECT_DIR, "backend", "tabletop.json")
 PREFS_FILE = os.path.join(PROJECT_DIR, "backend", "prefs.json")
+# Glen's own two-player games: self-contained static HTML, no build, no network.
+# Served from here rather than a second http.server so there is one process to
+# supervise and one origin, which also keeps their localStorage stable.
+TABLE_DIR = os.environ.get("TABLE_ARCADE_DIR", os.path.expanduser("~/table-arcade"))
 # Not security. It keeps a seven-year-old from unlocking the whole library on
 # their own, and that is the entire threat model. Anyone who can reach this
 # machine's filesystem can edit prefs.json directly.
@@ -209,6 +213,105 @@ def index():
     return send_from_directory(FRONTEND_DIR, "index.html")
 
 
+@app.route("/table/")
+@app.route("/table/<path:sub>")
+def table_arcade(sub="index.html"):
+    """Serve the table-arcade games.
+
+    These are NOT emulated, so none of the RetroArch machinery applies: no
+    core, no shader, no cocktail split. They draw their own two-player layout
+    with the far panel already rotated, which is why they want the DISPLAY
+    rotated 90 degrees while the emulators want it left alone.
+    """
+    if not os.path.isdir(TABLE_DIR):
+        return jsonify({"error": "table-arcade not installed"}), 404
+    full = os.path.normpath(os.path.join(TABLE_DIR, sub))
+    if not full.startswith(os.path.realpath(TABLE_DIR)) and not full.startswith(TABLE_DIR):
+        return jsonify({"error": "nope"}), 400
+    # Inject the cabinet shim rather than editing the games. They stay
+    # untouched and portable; everything cabinet-specific lives in one file.
+    if sub.endswith(".html") and os.path.isfile(full):
+        with open(full, encoding="utf-8") as f:
+            html = f.read()
+        tag = '<script src="/table-shim.js"></script>'
+        if "</body>" in html:
+            html = html.replace("</body>", tag + "</body>", 1)
+        else:
+            html = html + tag
+        return Response(html, mimetype="text/html")
+    return send_from_directory(TABLE_DIR, sub)
+
+
+@app.route("/table-shim.js")
+def table_shim():
+    return send_from_directory(FRONTEND_DIR, "table-shim.js")
+
+
+@app.route("/api/launch-table", methods=["POST"])
+def launch_table():
+    """Hand the display to one of Glen's own games.
+
+    Nothing about the RetroArch path applies: no core, no shader. What changes
+    instead is the screen ROTATION — these draw a portrait playfield with the
+    two players at its short edges, so the panel has to turn 90 degrees to put
+    those edges at the ends of the table where people actually sit.
+
+    The URL and rotation go into files the kiosk respawn loop reads; killing
+    Chromium is what makes the change take. Launching a browser directly would
+    just be killed by the loop seconds later.
+    """
+    data = request.get_json(silent=True) or {}
+    rom = data.get("rom", "")
+    if "/" in rom or "\\" in rom or ".." in rom or not rom.endswith(".html"):
+        return jsonify({"ok": False, "error": "invalid game"}), 400
+    if not os.path.isfile(os.path.join(TABLE_DIR, "games", rom)):
+        return jsonify({"ok": False, "error": "game not found"}), 404
+    _switch_kiosk("http://localhost:8088/table/games/" + rom, "90")
+    return jsonify({"ok": True})
+
+
+@app.route("/api/exit-table", methods=["POST"])
+def exit_table():
+    _switch_kiosk("http://localhost:8088/?table=1", "normal")
+    return jsonify({"ok": True})
+
+
+def _switch_kiosk(url, rotate):
+    with open("/tmp/kiosk-url", "w") as f:
+        f.write(url)
+    with open("/tmp/kiosk-rotate", "w") as f:
+        f.write(rotate)
+    subprocess.run(["pkill", "-x", "chromium"], capture_output=True)
+
+
+def table_games():
+    """The playable titles, read off disk so adding an .html file is enough."""
+    gdir = os.path.join(TABLE_DIR, "games")
+    if not os.path.isdir(gdir):
+        return []
+    out = []
+    for fn in sorted(os.listdir(gdir)):
+        if not fn.endswith(".html"):
+            continue
+        slug = fn[:-5]
+        out.append({
+            "id": "table-" + slug,
+            "title": slug.replace("-", " ").title(),
+            "system": "table",
+            "rom": fn,
+            "url": "/table/games/" + fn,
+            "description": "",
+            "plays": 0,
+            "seating": "shared",
+        })
+    return out
+
+
+@app.route("/api/table-games")
+def api_table_games():
+    return jsonify({"games": table_games()})
+
+
 @app.route("/api/games")
 def games():
     # ?system=nes|snes filters to that library. The BSA kiosk admin
@@ -331,6 +434,7 @@ def status_endpoint():
     return jsonify({
         "playing": playing,
         "workouts_available": os.path.isfile(SWITCH_TO_WORKOUTS),
+        "has_table": bool(table_games()),
         "systems": sorted(
             s for s in ALLOWED_SYSTEMS
             if os.path.isdir(os.path.join(ROMS_DIR, s))
