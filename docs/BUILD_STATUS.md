@@ -45,8 +45,8 @@ it was left for Glen. Until then the Pi is LAN-only.
 
 RetroArch 1.20.0, cores `nestopia` / `snes9x` / `mgba` / `parallel_n64` (the
 last pulled from the libretro buildbot by `install/install.sh`), Flask, and 439
-joypad autoconfig profiles. `pi-arcade.service` is installed but **disabled and
-inactive** — deliberately, since there is no display attached yet.
+joypad autoconfig profiles. `pi-arcade.service` is enabled and running; see
+the autostart note above.
 
 ---
 
@@ -145,6 +145,18 @@ positional arg on `launch_game.sh`, set by the picker when the URL carries
 `?table=1`. Global `video_shader_enable` would put the split on every game
 forever, including single-screen play. A missing preset falls back to shaders
 off rather than launching into a broken pipeline.
+
+**The cocktail branch must emit BOTH `video_shader_enable = "true"` and the
+`--set-shader` argument.** `--set-shader` supplies the path but still obeys the
+switch, so with the switch false in `retroarch.cfg` the preset is accepted and
+then ignored — the game runs unsplit with no warning anywhere. This cost an
+hour, and the earlier "verified working" split had in fact been running on a
+stale global `true` left over from testing.
+
+Both call sites in the picker must pass the flag. `frontend/app.js` launches
+from the tile handler AND from the idle attract loop, and the attract path was
+missed at first — so the screensaver, the thing an idle cabinet shows all day,
+ran unsplit.
 
 `video_force_aspect = false` is required, or RetroArch letterboxes the panel
 before the shader sees it.
