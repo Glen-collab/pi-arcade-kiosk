@@ -1,0 +1,1283 @@
+# Game list
+
+Generated 2026-09-24 from the Pi. **1268 games** — 847 NES, 421 SNES. Every one verified to boot.
+
+Games are tagged only where they are an exception: `split-screen` means the
+game renders its own per-player viewports, so on the cocktail table each
+player's viewport is halved again. `1P` means no two-player mode. Everything
+else shares one camera and works face to face.
+
+
+## SNES (421)
+
+- 3 Ninjas Kick Back
+- 7th Saga, The
+- AAAHH!!! Real Monsters
+- ACME Animation Factory
+- ActRaiser  `1P`
+- ActRaiser 2
+- Addams Family Values
+- Addams Family, The
+- Addams Family, The - Pugsley's Scavenger Hunt
+- Adventures of Batman & Robin, The
+- Adventures of Dr. Franken, The
+- Adventures of Kid Kleets, The
+- Aero the Acro-Bat
+- Aero the Acro-Bat 2
+- Aladdin
+- American Gladiators
+- Animaniacs
+- Art of Fighting
+- Axelay
+- B.O.B.
+- Bahamut Lagoon # SNES
+- Ballz 3D
+- Bass Masters Classic
+- Bass Masters Classic - Pro Edition
+- Bassin's Black Bass
+- Batman Forever
+- Batman Returns
+- Battle Cars
+- Battle Clash
+- Battletoads & Double Dragon - The Ultimate Team
+- Beauty and the Beast
+- Beavis and Butt-head
+- Biker Mice From Mars
+- Bill Walsh College Football
+- Blackthorne
+- Bonkers
+- Boogerman - A Pick and Flick Adventure
+- Boxing Legends of the Ring
+- Brain Lord
+- Brandish
+- Brawl Brothers
+- Breath of Fire
+- Breath of Fire II
+- Brett Hull Hockey
+- Brett Hull Hockey '95
+- Brunswick World Tournament of Champions
+- Brutal - Paws of Fury
+- Bubsy II
+- Bubsy in Claws Encounters of the Furred Kind
+- Bugs Bunny - Rabbit Rampage
+- Cannondale Cup
+- Capcom's Soccer Shootout
+- Captain America and The Avengers
+- Captain Commando
+- Carrier Aces
+- Castlevania - Dracula X
+- Chester Cheetah - Wild Wild Quest
+- Chrono Trigger  `1P`
+- Civilization
+- Clay Fighter
+- Clay Fighter - Tournament Edition
+- Clay Fighter 2 - Judgment Clay
+- Claymates
+- College Football USA '97 - The Road to New Orleans
+- College Slam Basketball
+- Combatribes, The
+- Contra III - The Alien Wars
+- Cool Spot
+- Cool World
+- Cutthroat Island
+- Cybernator
+- Dai 3 Ji - Super Robot Taisen # SNES
+- Death and Return of Superman, The
+- Demolition Man
+- Demon's Crest
+- Dennis the Menace
+- Donkey Kong Country  `1P`
+- Donkey Kong Country - Competition Cartridge
+- Donkey Kong Country 2 - Diddy's Kong Quest
+- Donkey Kong Country 3 - Dixie Kong's Double Trouble
+- Doom
+- Doomsday Warrior
+- Double Dragon V - The Shadow Falls
+- Dragon - The Bruce Lee Story
+- Dragon Quest 1 and 2 # SNES
+- Dragon Quest 5 - Tenkuu no Hanayome # SNES
+- Dragon Quest 6 - Maboroshi no Daichi # SNES
+- Dragon View
+- Dragon-Ball Z - Hyper Dimension # SNES
+- Dragon-Ball Z - Super Butouden 3 # SNES
+- Dragon-Ball Z - Super Gokuden Totsugeki Hen # SNES
+- Dragon-Ball Z - Super Saiyan Densetsu # SNES
+- Dragon-Ball-Z - Super Gokuden 2 # SNES
+- Dual Orb 2 # SNES
+- E.V.O. Search for Eden
+- Earthbound  `1P`
+- Earthworm Jim
+- Earthworm Jim 2
+- Eek! The Cat
+- Elite Soccer
+- ESPN Baseball Tonight
+- ESPN National Hockey Night
+- ESPN Speedworld
+- ESPN Sunday Night NFL
+- F1 ROC II - Race of Champions
+- Fatal Fury
+- Fatal Fury 2
+- Fatal Fury Special
+- Feda - the Emblem of Justice # SNES
+- FIFA 97 - Gold Edition
+- FIFA Soccer 96
+- Fighter's History
+- Final Fantasy 4 - 10th Anniversary Edition # SNES
+- Final Fantasy 6 # SNES
+- Final Fantasy III  `1P`
+- Final Fight 2
+- Final Fight 3
+- Flashback - The Quest for Identity
+- Flintstones, The
+- Flintstones, The - The Treasure of Sierra Madrock
+- Foreman For Real
+- Frank Thomas' Big Hurt Baseball
+- Frantic Flea
+- Front Mission - Gun Hazard # SNES
+- Full Throttle Racing
+- Fun 'N Games
+- Gamars Puzzle
+- George Foreman's KO Boxing
+- Ghoul Patrol
+- GP-1 Part II
+- Great Circus Mystery Starring Mickey & Minnie, The
+- Hagane
+- HAL's Hole in One Golf
+- Hammerlock Wrestling
+- Hardball III
+- Harvest Moon
+- Head-On Soccer
+- Home Improvement
+- Hurricanes, The
+- Illusion of Gaia
+- Incredible Crash Dummies, The
+- Incredible Hulk, The
+- Indiana Jones' Greatest Adventures
+- International Superstar Soccer
+- International Superstar Soccer Deluxe
+- International Tennis Tour
+- Izzy's Quest for the Olympic Rings
+- Jammit
+- Jim Lee's WildC.A.T.S
+- Jim Power - The Lost Dimension in 3D
+- Jimmy Houston's Bass Tournament U.S.A.
+- Joe & Mac 2 - Lost in the Tropics
+- JRR Tolkien's The Lord of the Rings - Volume 1
+- Judge Dredd
+- Jungle Book, The
+- Jungle Strike
+- Jurassic Park
+- Jurassic Park Part 2 - The Chaos Continues
+- Justice League Task Force
+- Kawasaki Caribbean Challenge
+- Ken Griffey Jr. Presents Major League Baseball
+- Ken Griffey Jr.'s Winning Run
+- Kid Klown in Crazy Chase
+- Killer Instinct
+- King Arthur & The Knights of Justice
+- King of Dragons, The
+- King of the Monsters 2
+- Kirby Super Star
+- Kirby's Dream Land 3
+- Knights of the Round
+- Kyle Petty's No Fear Racing
+- Legend
+- Legend of The Mystical Ninja, The
+- Legend of Zelda, The - A Link to the Past
+- Lemmings 2 - The Tribes
+- Lethal Enforcers
+- Liberty or Death
+- Lion King, The
+- Looney Tunes B-Ball
+- Lost Vikings II, The
+- Lost Vikings, The
+- Lufia & The Fortress of Doom
+- Lufia II - Rise of the Sinistrals
+- Madden NFL '94
+- Madden NFL '95
+- Madden NFL '96
+- Madden NFL '97
+- Madden NFL '98
+- Magic Johnson's Super Slam Dunk
+- Magical Quest Starring Mickey Mouse, The
+- Mario is Missing!
+- Mario's Early Years - Fun With Letters
+- Mario's Early Years - Fun With Numbers
+- Mario's Early Years - Preschool Fun
+- Mario's Time Machine
+- Mark Davis' The Fishing Master
+- Marvel Super Heroes - War of the Gems
+- Mary Shelley's Frankenstein
+- Mask, The
+- Maui Mallard in Cold Shadow
+- Mechwarrior
+- Mechwarrior 3050
+- Mega Man VII
+- Mega Man X
+- Mega Man X 2
+- Mega Man X 3
+- Metal Combat - Falcon's Revenge
+- Metal Marines
+- Metal Morph
+- Metal Warriors
+- Michael Andretti's Indy Car Challenge
+- Michael Jordan - Chaos in the Windy City
+- Mickey Mania
+- Mickey's Playtown Adventure - A Day of Discovery!
+- Might and Magic III - Isles of Terra
+- Mighty Max
+- Mighty Morphin Power Rangers
+- Mighty Morphin Power Rangers - The Fighting Edition
+- Mighty Morphin Power Rangers - The Movie
+- MLBPA Baseball
+- MoHawk & Headphone Jack
+- Monstania # SNES
+- Mortal Kombat
+- Mortal Kombat I
+- Mortal Kombat II
+- Mortal Kombat III
+- Mountain Bike Rally
+- Mr. Nutz
+- Mutant Chronicles - Doom Troopers
+- Natsume Championship Wrestling
+- NBA Give 'N Go
+- NBA Hang Time
+- NBA Jam
+- NBA Jam - Tournament Edition
+- NBA Live '95
+- NBA Live '96
+- NBA Live '97
+- NBA Live '98
+- Newman-Hass Indy Car Featuring Nigel Mansell
+- NFL Quarterback Club
+- NFL Quarterback Club '96
+- NHL '95
+- NHL '96
+- NHL '97
+- NHL '98
+- Nickelodeon GUTS
+- Nigel Mansell's World Championship Racing
+- Ninja Gaiden Trilogy
+- Ninja Warriors, The
+- No Escape
+- Nosferatu
+- Ogre Battle - The March of the Black Queen
+- Olympic Summer Games 96
+- Operation Thunderbolt
+- Pac-in-Time
+- Pac-Man 2 - The New Adventures
+- Pacific Theater of Operations
+- Pacific Theater of Operations II
+- Pagemaster, The
+- Paladin's Quest
+- Peace Keepers, The
+- Pebble Beach Golf Links
+- PGA Tour 96
+- Phantom 2040
+- Pieces
+- Pinocchio
+- Pitfall - The Mayan Adventure
+- Pocky & Rocky
+- Pocky & Rocky 2
+- Porky Pig's Haunted Holiday
+- Power Drive
+- Power Instinct
+- Power Rangers Zeo - Battle Racers
+- Prehistorik Man
+- Primal Rage
+- Prince of Persia 2 - The Shadow & The Flame
+- R-Type III - The Third Lightning
+- Radical Rex
+- Ranma Nibunnoichi - Hard Battle
+- Rap Jam - Volume One
+- Relief Pitcher
+- Ren & Stimpy Show, The - Time Warp
+- Ren & Stimpy Show, The - Veediots!
+- Revolution X
+- RHI Roller Hockey '95
+- Rise of the Phoenix
+- Rival Turf
+- Robocop Versus The Terminator
+- Robotrek
+- Rock N' Roll Racing
+- Rocko's Modern Life - Spunky's Dangerous Day
+- Romance of the Three Kingdoms III - Dragon of Destiny
+- Romance of the Three Kingdoms IV - Wall of Fire
+- Sailor-Moon # SNES
+- Sailor-Moon RPG - Another Story # SNES
+- Samurai Shodown
+- Saturday Night Slam Masters
+- Scooby-Doo
+- SeaQuest DSV
+- Secret of Evermore
+- Secret of Mana
+- Shadow, The
+- Shadowrun
+- Shaq Fu
+- Shien's Revenge
+- Sim Ant
+- Sim City 2000
+- Simpsons, The - Bart's Nightmare
+- Soldiers of Fortune
+- Sonic Blast Man II
+- Sonic the Hedgehog
+- SOS
+- Soul Blazer
+- Space Ace
+- Sparkster
+- Spawn
+- Speed Racer in My Most Dangerous Adventures
+- Speedy Gonzales - Los Gatos Bandidos
+- Spell Craft
+- Spider-Man
+- Spider-Man & Venom - Maximum Carnage
+- Spider-Man & Venom - Separation Anxiety
+- Sporting News Power Baseball, The
+- Sports Illustrated Championship Football & Baseball
+- Star Ocean # SNES
+- Star Trek - Deep Space Nine - Crossroads of Time
+- Star Trek - The Next Generation - Future's Past
+- Street Fighter Alpha 2
+- Street Fighter II - The World Warrior
+- Street Fighter II Turbo - Hyper Fighting
+- Street Hockey '95
+- Street Racer  `split-screen`
+- Sunset Riders
+- Super Adventure Island II
+- Super Alfred Chicken
+- Super Bases Loaded 3 - License to Steal
+- Super Battletank 2
+- Super Black Bass
+- Super Bonk
+- Super Castlevania IV  `1P`
+- Super Double Dragon
+- Super Godzilla
+- Super High Impact
+- Super Mario All-Stars
+- Super Mario All-Stars + Super Mario World
+- Super Mario RPG - Legend of the Seven Stars
+- Super Mario World 2 - Yoshi's Island
+- Super Metroid  `1P`
+- Super Off Road - The Baja
+- Super Punch-Out!!
+- Super R.B.I. Baseball
+- Super Star Wars
+- Super Star Wars - Return of the Jedi
+- Super Star Wars - The Empire Strikes Back
+- Super Street Fighter II - The New Challengers
+- Super Strike Eagle
+- Super Turrican 2
+- Super Valis IV
+- SWAT Kats - The Radical Squadron
+- Syndicate
+- T2 - The Arcade Game
+- Tales of Phantasia # SNES
+- Tecmo Super Baseball
+- Tecmo Super Bowl
+- Tecmo Super Bowl II - Special Edition
+- Tecmo Super Bowl III - Final Edition
+- Teenage Mutant Ninja Turtles - Tournament Fighters
+- Teenage Mutant Ninja Turtles IV - Turtles in Time
+- Terminator 2 - Judgment Day
+- Tetris 2
+- Tetris Attack
+- Thomas the Tank Engine and Friends
+- Tick, The
+- Timecop
+- Timon & Pumbaa's Jungle Games
+- Tin Star
+- Tiny Toon Adventures - Buster Busts Loose!
+- Tiny Toon Adventures - Wacky Sports Challenge
+- TNN Bass Tournament of Champions
+- Top Gear 3000  `split-screen`
+- Toy Story
+- Troy Aikman NFL Football
+- True Lies
+- Turn and Burn - No-Fly Zone
+- Ultimate Fighter
+- Ultimate Mortal Kombat 3
+- Uncharted Waters - New Horizons
+- Uniracers
+- Untouchables, The
+- Urban Strike
+- Vegas Stakes
+- Virtual Bart
+- Waialae Country Club
+- War 2410
+- Warlock
+- Wayne Gretzky and the NHLPA All-Stars
+- Wayne's World
+- WCW Super Brawl Wrestling
+- Weapon Lord
+- Where in the World is Carmen Sandiego
+- Where in Time is Carmen Sandiego
+- Wild Guns
+- Wing Commander
+- Wing Commander - The Secret Missions
+- Winter Olympic Games - Lillehammer '94
+- Wizard of Oz, The
+- Wizardry V - Heart of the Maelstrom
+- Wolverine - Adamantium Rage
+- World Cup USA 94
+- World Heroes
+- World Heroes 2
+- WWF Raw
+- WWF Royal Rumble
+- WWF Super WrestleMania
+- WWF WrestleMania - The Arcade Game
+- X-Kaliber 2097
+- X-Men - Mutant Apocalypse
+- Young Merlin
+- Ys 4 - Mask of the Sun # SNES
+- Zero the Kamikaze Squirrel
+- Zool
+
+## NES (847)
+
+- 10-Yard Fight
+- 1943
+- 3-D Battles of World Runner, The
+- 720
+- 8 Eyes
+- Abadox
+- Action 52
+- AD&D Dragon Strike
+- AD&D Dragon Strike
+- AD&D Heroes of the Lance
+- AD&D Hillsfar
+- AD&D Pool of Radiance
+- Addams Family - Pugsley's Scavenger Hunt, The
+- Addams Family, The
+- Adventures in the Magic Kingdom
+- Adventures in the Magic Kingdom
+- Adventures of Bayou Billy, The
+- Adventures of Dino Riki
+- Adventures of Lolo
+- Adventures of Lolo 2
+- Adventures of Lolo 3
+- Adventures of Rad Gravity, The
+- Adventures of Rocky and Bullwinkle and Friends, The
+- Adventures of Tom Sawyer
+- After Burner
+- Air Fortress
+- Airwolf
+- Al Unser Jr Turbo Racing
+- Al Unser Jr Turbo Racing
+- Alfred Chicken
+- Alien 3
+- Alien Syndrome
+- All-Pro Basketball
+- Alpha Mission
+- Amagon
+- Amagon
+- Amagon
+- American Gladiators
+- Anticipation
+- Arch Rivals
+- Archon
+- Arkanoid
+- Arkista's Ring
+- Astyanax
+- Astyanax
+- Athena
+- Athena
+- Athletic World
+- Attack of the Killer Tomatoes
+- Baby Boomer
+- Back to the Future
+- Back to the Future 2 & 3
+- Bad Dudes
+- Bad News Baseball
+- Bad Street Brawler
+- Bandai Golf - Challenge Pebble Beach
+- Bandit Kings of Ancient China
+- Bandit Kings of Ancient China
+- Barbie
+- Barbie
+- Bard's Tale - Tales of the Unknown, The
+- Barker Bill's Trick Shooting
+- Base Wars
+- Base Wars
+- Baseball Simulator 1.000
+- Baseball Stars
+- Baseball Stars 2
+- Bases Loaded
+- Bases Loaded 2
+- Bases Loaded 3
+- Bases Loaded 4
+- Batman
+- Batman
+- Batman - Return of the Joker
+- Batman Returns
+- Battle Chess
+- Battle of Olympus, The
+- Battle Tank
+- Battleship
+- Battletoads
+- Battletoads Double Dragon
+- Bee 52
+- Beetlejuice
+- Best of the Best Championship Karate
+- Bible Adventures
+- Bible Adventures
+- Bible Buffet
+- Big Bird's Hide and Speak
+- Big Nose Freaks Out
+- Big Nose Freaks Out
+- Big Nose the Caveman
+- Bigfoot
+- Bill & Ted's Excellent Video Game Adventure
+- Bill Elliott's NASCAR Challenge
+- Bionic Commando
+- Black Bass USA, The
+- Blackjack
+- Blades of Steel
+- Blaster Master
+- Blaster Master
+- Blue Marlin, The
+- Blues Brothers, The
+- Bo Jackson Baseball
+- Bomberman
+- Bomberman 2
+- Bonk's Adventure
+- Boulder Dash
+- Boy and His Blob - Trouble on Blobolonia, A
+- Bram Stoker's Dracula
+- Break Time
+- Breakthru
+- Bubble Bobble
+- Bubble Bobble Part 2
+- Bucky O'Hare
+- Bugs Bunny Birthday Bash
+- Bugs Bunny Birthday Blowout, The
+- Bugs Bunny Crazy Castle, The
+- Bugs Bunny Fun House
+- Bump'n'Jump
+- Burai Fighter
+- Burger Time
+- Cabal
+- Cabal
+- Caesar's Palace
+- California Games
+- California Games
+- Caltron 6-in-1
+- Captain America and the Avengers
+- Captain Planet and the Planeteers
+- Captain SkyHawk
+- Casino Kid
+- Casino Kid 2
+- Castelian
+- Castle of Deceit
+- Castle of Dragon
+- Castlequest
+- Castlevania  `1P`
+- Castlevania  `1P`
+- Castlevania 2 - Simon's Quest
+- Castlevania 3 - Dracula's Curse
+- Caveman Games
+- Challenge of the Dragon
+- Championship Bowling
+- Championship Pool
+- Cheetahmen 2
+- Chessmaster, The
+- Chiller
+- Chip 'n Dale Rescue Rangers
+- Chip 'n Dale Rescue Rangers 2
+- Chubby Cherub
+- Circus Caper
+- Circus Charlie
+- City Connection
+- Clash At Demonhead
+- Clash At Demonhead
+- Classic Concentration
+- Cliffhanger
+- Cobra Command
+- Cobra Triangle
+- Code Name Viper
+- Color A Dinosaur
+- Commando
+- Conan
+- Conflict
+- Conquest of the Crystal Palace
+- Contra
+- Contra Force
+- Cool World
+- Cowboy Kid
+- Crash'n The Boys Street Challenge
+- Crystal Mines
+- Crystalis
+- Crystalis
+- Crystalis
+- Crystalis
+- Cyberball
+- Cybernoid - The Fighting Machine
+- Dance Aerobics
+- Danny Sullivan's Indy Heat
+- Darkman
+- Darkwing Duck
+- Darkwing Duck
+- Dash Galaxy in the Alien Asylum
+- Day Dreamin' Davey
+- Days of Thunder
+- Deadly Towers
+- Death Race
+- Deathbots
+- Deathbots
+- Defender 2
+- Defender of the Crown
+- Defenders of Dynatron City
+- Demon Sword
+- Desert Commander
+- Destination Earthstar
+- Destiny of an Emperor
+- Dick Tracy
+- Die Hard
+- Dig Dug II
+- Digger - The Legend of the Lost City
+- Dirty Harry
+- Dizzy The Adventurer
+- Donkey Kong Classics
+- Donkey Kong Jr. Math
+- Double Dare
+- Double Dragon
+- Double Dragon 2 - The Revenge
+- Double Dragon 3 - The Sacred Stones
+- Double Dribble
+- Double Dribble
+- Double Strike
+- Double Strike
+- Dr Chaos
+- Dr Jekyll and Mr Hyde
+- Drac's Night Out
+- Dragon Fighter
+- Dragon Power
+- Dragon Spirit - The New Legend
+- Dragon Warrior
+- Dragon Warrior
+- Dragon Warrior 2
+- Dragon Warrior 3
+- Dragon Warrior 4
+- Dragon's Lair
+- Duck Tales
+- Duck Tales
+- Duck Tales 2
+- Dudes With Attitude
+- Dungeon Magic - Sword of the Elements
+- Dusty Diamond's All-Star Softball
+- Dynowarz - Destruction of Spondylus
+- Earth Bound
+- Earth Bound Zero
+- Earth Bound Zero
+- Elevator Action
+- Eliminator Boat Duel
+- Evert & Lendl Top Player's Tennis
+- Exodus
+- F-117a Stealth Fighter
+- F-15 City War
+- F-15 City War
+- F-15 Strike Eagle
+- Family Feud
+- Fantastic Adventures of Dizzy, The
+- Fantastic Adventures of Dizzy, The
+- Fantasy Zone
+- Faria
+- Faxanadu
+- Felix the Cat
+- Ferrari - Grand Prix Challenge
+- Fester's Quest
+- Fester's Quest
+- Final Fantasy
+- Final Fantasy
+- Fire 'n Ice
+- Fire Hawk
+- Fire Hawk
+- Firehouse Rescue
+- Fist of the North Star
+- Flight of the Intruder
+- Flintstones - The Rescue of Dino & Hoppy, The
+- Flintstones 2 - The Surprise at Dinosaur Peak!, The
+- Flying Dragon - The Secret Scroll
+- Flying Warriors
+- Formula One Built To Win
+- Frankenstein - The Monster Returns
+- Free Fall
+- Freedom Force
+- Friday the 13th
+- Fun House
+- Galactic Crusader
+- Galaga
+- Galaxy 5000
+- Gargoyle's Quest 2 - The Demon Darkness
+- Gauntlet
+- Gauntlet 2
+- Gemfire
+- Genghis Khan
+- George Foreman's KO Boxing
+- Ghostbusters
+- Ghostbusters 2
+- Ghosts'n Goblins
+- Ghoul School
+- GI Joe
+- GI Joe - The Atlantis Factor
+- Gilligan's Island
+- Goal!
+- Goal! Two
+- Godzilla - Monster of Monsters!
+- Godzilla 2 - War of the Monsters
+- Gold Medal Challenge '92
+- Golf Grand Slam
+- Golgo 13 - Top Secret Episode
+- Goonies 2, The
+- Goonies 2, The
+- Gotcha!
+- Gradius
+- Great Waldo Search, The
+- Greg Norman's Golf Power
+- Gremlins 2 - The New Batch
+- Guardian Legend, The
+- Guerrilla War
+- Gun Nac
+- Gun Smoke
+- Gyruss
+- Harlem Globetrotters
+- Hatris
+- Heavy Barrel
+- Heavy Shreddin'
+- Hero Quest
+- High Speed
+- Hollywood Squares
+- Home Alone
+- Home Alone 2 - Lost in New York
+- Hook
+- Hoops
+- Hudson Hawk
+- Hudson's Adventure Island
+- Hudson's Adventure Island 2
+- Hudson's Adventure Island 3
+- Hunt for Red October, The
+- Hydlide
+- I Can Remember
+- Ice Climber
+- Ice Hockey
+- Ikari 3 - The Rescue
+- Ikari Warriors
+- Ikari Warriors
+- Ikari Warriors 2 - Victory Road
+- Image Fight
+- Immortal, The
+- Impossible Mission 2
+- Incredible Crash Dummies, The
+- Indiana Jones and the Last Crusade
+- Indiana Jones and the Last Crusade
+- Indiana Jones and the Temple of Doom
+- Indiana Jones and the Temple of Doom
+- Infiltrator
+- Iron Tank
+- Ironsword - Wizards & Warriors 2
+- Isolated Warrior
+- Ivan Ironman Stewart's Super Offroad
+- Jack Nicklaus' Greatest 18 Holes of Champ. Golf
+- Jackal
+- Jackal
+- Jackie Chan's Action Kung Fu
+- James Bond Jr
+- Jaws
+- Jaws
+- Jaws
+- Jeopardy!
+- Jeopardy! 25th Anniversary Edition
+- Jeopardy! Junior Edition
+- Jetsons - Cogswell's Caper!, The
+- Jimmy Connor's Tennis
+- Joe & Mac
+- John Elway's Quarterback
+- Jordan Vs Bird - One On One
+- Joshua
+- Joshua
+- Journey to Silius
+- Joust
+- Joypad Test Cartridge
+- Jungle Book, The
+- Jurassic Park
+- Kabuki - Quantum Fighter
+- Karate Champ
+- Karate Kid, The
+- Karnov
+- Kick Master
+- Kickle Cubicle
+- Kid Klown
+- Kid Kool
+- Kid Niki - Radical Ninja
+- Kid Niki - Radical Ninja
+- King Neptune's Adventure
+- King of Kings, The
+- King of Kings, The
+- King of Kings, The
+- King of Kings, The
+- King's Knight
+- King's Quest V
+- Kings of the Beach
+- Kirby's Adventure
+- Kirby's Adventure
+- Kiwi Kraze
+- Klash Ball
+- Klax
+- Knight Rider
+- Krazy Kreatures
+- Krazy Kreatures
+- Krion Conquest, The
+- Krion Conquest, The
+- Krusty's Fun House
+- Kung Fu
+- Kung Fu
+- Kung-Fu Heroes
+- L'Empereur
+- L'Empereur
+- Laser Invasion
+- Last Action Hero
+- Last Ninja, The
+- Last Starfighter, The
+- Lee Trevino's Fighting Golf
+- Legacy of the Wizard
+- Legend of Kage, The
+- Legend of the Ghost Lion
+- Legend of Zelda, The  `1P`
+- Legend of Zelda, The  `1P`
+- Legendary Wings
+- Legends of the Diamond
+- Lemmings
+- Lethal Weapon
+- Lifeforce
+- Linus Spacehead's Cosmic Crusade
+- Little League Baseball - Championship Series
+- Little Mermaid, The
+- Little Nemo - The Dream Master
+- Little Ninja Brothers
+- Little Samson
+- Lone Ranger, The
+- Loopz
+- Low G Man
+- Lunar Pool
+- M.U.L.E.
+- Mad Max
+- Mafat Conspiracy - Golgo 13
+- Magic Darts
+- Magic Johnson's Fast Break
+- Magic of Scheherazade, The
+- Magician
+- Magician
+- Magmax
+- Magmax
+- Major League Baseball
+- Major League Baseball
+- Maniac Mansion
+- Mappy-Land
+- Marble Madness
+- Mario is Missing!
+- Mario's Time Machine!
+- Mario's Time Machine!
+- Marvel's X-Men
+- Marvel's X-Men
+- Master Chu & The Drunkard Hu
+- Maxi 15
+- Maxi 15
+- MC Kids
+- Mechanized Attack
+- Mega Man  `1P`
+- Mega Man 2
+- Mega Man 3
+- Mega Man 3
+- Mega Man 4
+- Mega Man 5
+- Mega Man 6
+- Menace Beach
+- Mendel Palace
+- Mermaids of Atlantis
+- Metal Fighter
+- Metal Fighter
+- Metal Gear
+- Metal Mech
+- Metal Storm
+- Metroid  `1P`
+- Michael Andretti's World Grand Prix
+- Mickey Mousecapade
+- Mickey's Adventures in Numberland
+- Mickey's Safari in Letterland
+- Micro Machines
+- Mig-29 Soviet Fighter
+- Might and Magic
+- Mighty Bomb Jack
+- Mighty Final Fight
+- Mike Tyson's Punch-Out!!
+- Mike Tyson's Punch-Out!!
+- Millipede
+- Milon's Secret Castle
+- Miracle Piano Teaching System, The
+- Mission Cobra
+- Mission Impossible
+- Monopoly
+- Monster in My Pocket
+- Monster Party
+- Monster Truck Rally
+- Moon Ranger
+- Motor City Patrol
+- Ms Pac-Man
+- Ms Pac-Man
+- Muppet Adventure - Chaos at the Carnival
+- Mutant Virus, The
+- Mystery Quest
+- NARC
+- NES Open Tournament Golf
+- NES Open Tournament Golf
+- NES Play Action Football
+- NES PowerPad Test Cart
+- NES Test Cart
+- NFL Football
+- Nigel Mansell's World Championship Challenge
+- Nightmare On Elm Street, A
+- Nightshade
+- Nightshade
+- Ninja Crusaders
+- Ninja Gaiden
+- Ninja Gaiden
+- Ninja Gaiden
+- Ninja Gaiden 2 - The Dark Sword of Chaos
+- Ninja Gaiden 2 - The Dark Sword of Chaos
+- Ninja Gaiden 3 - The Ancient Ship of Doom
+- Ninja Kid
+- Nintendo World Championships 1990
+- Nintendo World Cup
+- Nobunaga's Ambition
+- Nobunaga's Ambition 2
+- North & South
+- Operation Secret Storm
+- Operation Wolf
+- Orb 3D
+- Othello
+- Overlord
+- P'radikus Conflict
+- Pac-Man
+- Pac-Man
+- Pac-Man
+- Pacmania
+- Palamedes
+- Panic Restaurant
+- Paperboy
+- Paperboy 2
+- Perfect Fit
+- Pesterminator
+- Peter Pan & The Pirates
+- Phantom Fighter
+- Pictionary
+- Pinball Quest
+- Pinball Quest
+- Pinbot
+- Pipe Dream
+- Pirates!
+- Platoon
+- Platoon
+- Port Test Cartridge
+- POW - Prisoners of War
+- Power Blade
+- Power Blade 2
+- Power Punch 2
+- Predator
+- Prince of Persia
+- Prince of Persia
+- Prince of Persia
+- Princess Tomato in Salad Kingdom
+- Pro Action Replay
+- Pro Action Replay
+- Pro Sport Hockey
+- Pro Wrestling
+- Punch-Out!!
+- Punisher, The
+- Puss 'n Boots - Pero's Great Adventure
+- Puzzle
+- Puzzle
+- Puzzle
+- Puzzle
+- Puzznic
+- Pyramid
+- Pyramid
+- Q-bert
+- Qix
+- Quattro Adventure
+- Quattro Adventure
+- Quattro Arcade
+- Quattro Sports
+- Quattro Sports
+- Quattro Sports
+- Race America
+- Racket Attack
+- Rad Racer
+- Rad Racer 2
+- Rad Racket - Deluxe Tennis 2
+- Rad Racket - Deluxe Tennis 2
+- Raid 2020
+- Raid on Bungeling Bay
+- Raid on Bungeling Bay
+- Rainbow Islands - The Story of Bubble Bobble 2
+- Rally Bike
+- Rambo
+- Rampage
+- Rampart
+- RBI Baseball
+- RBI Baseball 2
+- RBI Baseball 3
+- RC Pro-Am
+- RC Pro-Am 2
+- Remote Control
+- Ren & Stimpy Show, The
+- Renegade
+- Rescue - The Embassy Mission
+- Ring King
+- River City Ransom
+- Road Runner
+- RoadBlasters
+- Robin Hood - Prince of Thieves
+- Robo Warrior
+- Robocop
+- Robocop 2
+- Robocop 3
+- Robocop Vs The Terminator
+- Robocop Vs The Terminator
+- Robodemons
+- Rock 'n' Ball
+- Rocket Ranger
+- Rocketeer, The
+- Rockin' Kats
+- Roger Clemens MVP Baseball
+- Rollerball
+- Rollerblade Racer
+- Rollergames
+- Rolling Thunder
+- Romance of the Three Kingdoms
+- Romance of the Three Kingdoms 2
+- Roundball - 2-on-2 Challenge
+- Rush'n Attack
+- Rygar
+- SCAT - Special Cybernetic Attack Team
+- Section Z
+- Seicross
+- Sesame Street 123
+- Sesame Street ABC
+- Sesame Street ABC
+- Sesame Street ABC
+- Sesame Street ABC - 123
+- Sesame Street Countdown
+- Shadow of the Ninja
+- Shadowgate
+- Shatterhand
+- Shingen The Ruler
+- Shingen The Ruler
+- Shinobi
+- Shockwave
+- Shooting Range
+- Short Order - Eggsplode
+- Side Pocket
+- Silent Assault
+- Silent Service
+- Silent Service
+- Silk Worm
+- Silver Surfer
+- Simpsons - Bart Vs the Space Mutants, The
+- Simpsons - Bart Vs the World, The
+- Simpsons - Bartman Meets Radioactive Man, The
+- Skate or Die 2 - The Search for Double Trouble
+- Skate or Die!
+- Skate or Die!
+- Ski or Die
+- Skull & Crossbones
+- Sky Kid
+- Sky Shark
+- Slalom
+- Smash TV
+- Snake Rattle'n Roll
+- Snake's Revenge
+- Snoopy's Silly Sports Spectacular
+- Snow Bros
+- Solar Jetman - Hunt for the Golden Warpship
+- Solitaire
+- Solomon's Key
+- Solstice
+- Solstice
+- Space Shuttle Project
+- Spelunker
+- Spider-Man - Return of the Sinister Six
+- Spiritual Warfare
+- Spiritual Warfare
+- Spot
+- Spy Hunter
+- Spy Vs Spy  `split-screen`
+- Sqoon
+- Stadium Events
+- Stanley - The Search for Dr Livingston
+- Star Force
+- Star Soldier
+- Star Trek - 25th Anniversary
+- Star Trek - The Next Generation
+- Star Voyager
+- Star Wars
+- Star Wars - The Empire Strikes Back
+- Starship Hector
+- Startropics
+- Startropics 2 - Zoda's Revenge
+- Startropics 2 - Zoda's Revenge
+- Stealth ATF
+- Stinger
+- Street Cop
+- Street Fighter 2010
+- Strider
+- Stunt Kids
+- Sunday Funday
+- Super C
+- Super Cars
+- Super Dodge Ball
+- Super Glove Ball
+- Super Jeopardy!
+- Super Mario Bros - Duck Hunt
+- Super Mario Bros - Duck Hunt - Track Meet
+- Super Mario Bros 2
+- Super Mario Bros 2
+- Super Mario Bros 3  `1P`
+- Super Mario Bros 3  `1P`
+- Super Mario Bros 3  `1P`
+- Super Mario Bros 3  `1P`
+- Super Mario Bros 3  `1P`
+- Super Pitfall
+- Super Spike V'Ball
+- Super Spike V'Ball - Nintendo World Cup
+- Super Sprint
+- Super Spy Hunter
+- Super Team Games
+- Superman
+- Swamp Thing
+- Sword Master
+- Swords and Serpents
+- Swords and Serpents
+- T&C 2 - Thrilla's Surfari
+- T&C Surf Design
+- Taboo - The Sixth Sense
+- Tag Team Wrestling
+- Tagin' Dragon
+- TaleSpin
+- Target Renegade
+- Tecmo Baseball
+- Tecmo Bowl
+- Tecmo Bowl
+- Tecmo Bowl
+- Tecmo Cup - Soccer Game
+- Tecmo Cup - Soccer Game
+- Tecmo NBA Basketball
+- Tecmo Super Bowl
+- Tecmo World Wrestling
+- Teenage Mutant Ninja Turtles
+- Teenage Mutant Ninja Turtles 2
+- Teenage Mutant Ninja Turtles 3
+- Teenage Mutant Ninja Turtles Tournament Fighters
+- Terminator 2 - Judgement Day
+- Terminator 2 - Judgement Day
+- Terminator, The
+- Terra Cresta
+- Tetris
+- Tetris 2
+- Three Stooges
+- Three Stooges
+- Thunder & Lightning
+- Thunderbirds
+- Thundercade
+- Tiger-Heli
+- Tiles of Fate
+- Time Lord
+- Times of Lore
+- Tiny Toon Adventures
+- Tiny Toon Adventures 2 - Trouble in Wackyland
+- Tiny Toon Adventures Cartoon Workshop
+- To The Earth
+- Toki
+- Tom & Jerry
+- Tombs and Treasure
+- Toobin
+- Toobin
+- Top Gun
+- Top Gun - The Second Mission
+- Total Recall
+- Totally Rad
+- Touch Down Fever
+- Toxic Crusaders
+- Track & Field
+- Track & Field 2
+- Treasure Master
+- Trog
+- Trojan
+- Trojan
+- Trolls on Treasure Island
+- Trolls on Treasure Island
+- Twin Cobra
+- Twin Eagle
+- U-Force Test Cartridge
+- Ultima - Exodus
+- Ultima - Quest of the Avatar
+- Ultima - Warriors of Destiny
+- Ultimate Air Combat
+- Ultimate Basketball
+- Ultimate League Soccer
+- Uncharted Waters
+- Uninvited
+- Untouchables, The
+- Vegas Dream
+- Venice Beach Volleyball
+- Vice - Project Doom
+- Videomation
+- Vindicators
+- Volleyball
+- Wacky Races
+- Wall Street Kid
+- Wall Street Kid
+- Wall Street Kid
+- Wally Bear and the No Gang
+- Wario's Woods
+- Wayne Gretzky Hockey
+- Wayne's World
+- WCW World Championship Wrestling
+- Werewolf - The Last Warrior
+- Wheel of Fortune
+- Wheel of Fortune - Starring Vanna White
+- Wheel of Fortune Family Edition
+- Wheel of Fortune Junior Edition
+- Where in Time is Carmen Sandiego
+- Where's Waldo
+- Who Framed Roger Rabbit
+- Who Framed Roger Rabbit
+- Whomp'Em
+- Widget
+- Wild Gunman
+- Wild Gunman
+- Willow
+- Win, Lose or Draw
+- Winter Games
+- Wizardry - Proving Grounds of the Mad Overlord
+- Wizardry - The Knight of Diamonds
+- Wizards & Warriors
+- Wizards & Warriors 3
+- Wolverine
+- World Champ
+- World Class Track Meet
+- World Games
+- Wrath of the Black Manta
+- Wurm
+- WWF King of the Ring
+- WWF Steel Cage Challenge
+- WWF Wrestlemania
+- WWF Wrestlemania Challenge
+- Xevious
+- Xexyz
+- Yo! Noid
+- Yoshi
+- Yoshi's Cookie
+- Young Indiana Jones Chronicles, The
+- Zanac
+- Zelda 2 - The Adventure of Link
+- Zen Intergalactic Ninja
+- Zombie Nation
