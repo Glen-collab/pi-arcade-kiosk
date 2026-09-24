@@ -520,7 +520,10 @@ let shuttingDown = false;
 
 let menuOpen = false;
 let menuRow = 0;
-let settings = { volume: null, brightness: null };
+let settings = { volume: null, brightness: null, visible_limit: null };
+// Code entry state. Spaceballs: the combination is one-two-three-four-five,
+// which is also the kind of thing an idiot would have on his luggage.
+let codeEntry = null;   // { digits:[..], pos:0, pending:<limit>, msg:"" }
 let navHeld = false;
 // Set whenever a game is running, so the combo that quit it cannot roll
 // straight into opening the settings menu. Cleared on a clean release.
@@ -544,9 +547,27 @@ function menuRows() {
   const rows = [];
   if (settings.volume !== null)     rows.push({ key: "volume",     label: "VOLUME" });
   if (settings.brightness !== null) rows.push({ key: "brightness", label: "BRIGHTNESS" });
+  rows.push({ key: "limit", label: "GAMES SHOWN" });
   rows.push({ key: "shutdown", label: "SHUT DOWN" });
   rows.push({ key: "close",    label: "BACK TO GAMES" });
   return rows;
+}
+
+function drawCodeEntry() {
+  const el = overlayEl();
+  const c = codeEntry;
+  const shown = c.digits
+    .map((d, i) => `<span class="code-digit${i === c.pos ? " selected" : ""}">${d}</span>`)
+    .join("");
+  el.innerHTML = `<div class="menu-box">
+    <div class="menu-title">PARENT CODE</div>
+    <div class="menu-row"><span>SETTING</span>
+      <span class="menu-val">${c.pending ? c.pending + " PER SYSTEM" : "ALL GAMES"}</span></div>
+    <div class="code-row">${shown}</div>
+    <div class="menu-hint">${c.msg ||
+      "UP/DOWN sets a digit &middot; LEFT/RIGHT moves &middot; A confirms &middot; B cancels"}</div>
+  </div>`;
+  el.hidden = false;
 }
 
 function drawMenu() {
@@ -558,7 +579,10 @@ function drawMenu() {
     ${rows.map((r, i) => {
       const sel = i === menuRow ? " selected" : "";
       let right = "";
-      if (r.key === "volume" || r.key === "brightness") {
+      if (r.key === "limit") {
+        const v = settings.visible_limit;
+        right = `<span class="menu-val">${v ? v + " PER SYSTEM" : "ALL"}</span>`;
+      } else if (r.key === "volume" || r.key === "brightness") {
         const v = settings[r.key];
         const filled = Math.round(v / 10);
         right = `<span class="menu-bar">${"#".repeat(filled)}${".".repeat(10 - filled)}</span>
@@ -591,10 +615,16 @@ async function adjust(key, delta) {
 }
 
 async function openMenu() {
-  await refreshSettings();
+  // menuOpen MUST flip before the await. Setting it afterwards leaves the
+  // closed-branch running for the whole round trip, which re-enters the
+  // countdown every 100ms and overwrites the menu the instant it is drawn —
+  // the symptom is "SETTINGS IN 2..." forever and a menu you can never reach.
   menuOpen = true;
   menuRow = 0;
+  settings = { volume: null, brightness: null };
   drawMenu();
+  await refreshSettings();
+  if (menuOpen) drawMenu();
 }
 
 function closeMenu() {
@@ -615,6 +645,56 @@ function doShutdown() {
 function pollSettingsMenu() {
   if (shuttingDown) return;
   const pads = listGamepads();
+
+  // Any time the overlay is involved, the user is present. Without this the
+  // 30s idle timer fires mid-menu and launches an attract demo over the top.
+  if (menuOpen || shutdownHeldSince) lastInput = Date.now();
+
+  if (codeEntry) {
+    let dir = null, confirm = false, back = false;
+    for (const gp of pads) {
+      if (gp.buttons[12]?.pressed || (gp.axes[1] ?? 0) < -0.5) dir = "up";
+      else if (gp.buttons[13]?.pressed || (gp.axes[1] ?? 0) > 0.5) dir = "down";
+      else if (gp.buttons[14]?.pressed || (gp.axes[0] ?? 0) < -0.5) dir = "left";
+      else if (gp.buttons[15]?.pressed || (gp.axes[0] ?? 0) > 0.5) dir = "right";
+      if (gp.buttons[0]?.pressed || gp.buttons[1]?.pressed) confirm = true;
+      if (gp.buttons[2]?.pressed || gp.buttons[3]?.pressed) back = true;
+    }
+    if (!dir && !confirm && !back) { navHeld = false; return; }
+    if (navHeld) return;
+    navHeld = true;
+    const c = codeEntry;
+    if (back) { codeEntry = null; drawMenu(); return; }
+    if (dir === "up")    { c.digits[c.pos] = c.digits[c.pos] % 9 + 1; drawCodeEntry(); return; }
+    if (dir === "down")  { c.digits[c.pos] = (c.digits[c.pos] + 7) % 9 + 1; drawCodeEntry(); return; }
+    if (dir === "left")  { c.pos = (c.pos + 4) % 5; drawCodeEntry(); return; }
+    if (dir === "right") { c.pos = (c.pos + 1) % 5; drawCodeEntry(); return; }
+    if (confirm) {
+      const code = c.digits.join("");
+      fetch("/api/visible-limit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: c.pending, code }),
+      }).then(r => r.json()).then(d => {
+        if (d.ok) {
+          settings.visible_limit = d.visible_limit;
+          codeEntry = null;
+          drawMenu();
+          // Spaceballs. The one joke this project has earned.
+          if (code === "12345") {
+            const el = overlayEl();
+            el.querySelector(".menu-hint").textContent =
+              "THAT'S THE STUPIDEST COMBINATION I'VE EVER HEARD IN MY LIFE!";
+          }
+          load();          // re-fetch the grid with the new cap
+        } else {
+          c.msg = "NOPE. TRY AGAIN.";
+          drawCodeEntry();
+        }
+      }).catch(() => { c.msg = "COULD NOT SAVE"; drawCodeEntry(); });
+    }
+    return;
+  }
 
   if (menuOpen) {
     let dir = null, confirm = false, back = false;
@@ -642,6 +722,13 @@ function pollSettingsMenu() {
     if (confirm) {
       if (row.key === "close") closeMenu();
       else if (row.key === "shutdown") doShutdown();
+      else if (row.key === "limit") {
+        // Cycle ALL -> 1..10 -> ALL, then gate the change behind the code.
+        const cur = settings.visible_limit || 0;
+        const next = cur >= 10 ? null : cur + 1;
+        codeEntry = { digits: [1, 1, 1, 1, 1], pos: 0, pending: next, msg: "" };
+        drawCodeEntry();
+      }
     }
     return;
   }

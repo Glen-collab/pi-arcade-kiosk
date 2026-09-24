@@ -343,3 +343,43 @@ body.table-mode .tile-title { font-size: 1.05rem; }
   color: #6f7086;
   letter-spacing: 0.06em;
 }
+
+/* ---- Table legibility -------------------------------------------------
+   The picker is read through glass, at an angle, on a panel that is often
+   dimmed for the games. The original palette was tuned for a bright upright
+   cabinet viewed straight on, and on a cocktail table it reads as near-black
+   on black. Everything below only raises contrast — no layout changes. */
+.tile {
+  background: linear-gradient(180deg, #2b2b3d 0%, #1b1b28 100%);
+  border-color: #55566e;
+}
+.tile-title { color: #f2f3ff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9); }
+.tile:focus, .tile:focus-visible { outline: none; }
+/* The selected tile has to be findable at a glance from across a table. */
+.tile.selected, .tile:focus-visible, .tile.nav-focus {
+  background: linear-gradient(180deg, #46476a 0%, #2e2f48 100%);
+  border-color: #ff5c86;
+}
+#all-heading, #top10-section h2, .section-heading { color: #ff7da0; }
+body { background: radial-gradient(ellipse at top, #241426 0%, #0d0a12 60%) fixed, #0d0a12; }
+#search { background: #1e1e2c; color: #f2f3ff; border-color: #55566e; }
+#search::placeholder { color: #9a9bb5; }
+
+/* The hidden attribute must win. Setting `display: flex` on this element beats
+   the user-agent's `[hidden] { display: none }` on specificity, so el.hidden
+   silently did nothing and an 88%-black overlay sat permanently on top of the
+   picker. The games looked fine because RetroArch draws over the browser — so
+   this only showed up as "the menu is too dark to read". */
+#shutdown-overlay[hidden] { display: none !important; }
+
+/* Parent code entry */
+#shutdown-overlay .code-row {
+  display: flex; gap: 1rem; justify-content: center; margin: 1.6rem 0 0.4rem;
+}
+#shutdown-overlay .code-digit {
+  font-size: 2.6rem; width: 3.4rem; text-align: center; color: #cfd0e0;
+  border: 2px solid #55566e; border-radius: 4px; padding: 0.3rem 0;
+}
+#shutdown-overlay .code-digit.selected {
+  color: #fff; border-color: #ff2e63; background: rgba(255, 46, 99, 0.16);
+}

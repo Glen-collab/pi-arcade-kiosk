@@ -19,3 +19,9 @@ __pycache__/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Runtime state, written by the running kiosk. Tracking these means every
+# deploy overwrites the cabinet's live play counts and parent settings with
+# whatever stale copy is in the repo — which is exactly what happened.
+backend/plays.json
+backend/prefs.json

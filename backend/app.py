@@ -27,6 +27,11 @@ LAUNCHER = os.path.join(PROJECT_DIR, "launcher", "launch_game.sh")
 OVERRIDES_FILE = os.path.join(PROJECT_DIR, "backend", "games.json")
 PLAYS_FILE = os.path.join(PROJECT_DIR, "backend", "plays.json")
 TABLETOP_FILE = os.path.join(PROJECT_DIR, "backend", "tabletop.json")
+PREFS_FILE = os.path.join(PROJECT_DIR, "backend", "prefs.json")
+# Not security. It keeps a seven-year-old from unlocking the whole library on
+# their own, and that is the entire threat model. Anyone who can reach this
+# machine's filesystem can edit prefs.json directly.
+PARENT_CODE = os.environ.get("BSA_PARENT_CODE", "12345")
 ROMS_DIR = os.path.join(PROJECT_DIR, "roms")
 
 ALLOWED_SYSTEMS = {"nes", "snes", "n64", "gba"}
@@ -96,6 +101,27 @@ def load_tabletop():
     return seating
 
 
+def load_prefs():
+    """Parent-set display preferences. visible_limit caps how many games the
+    A-Z grid offers per system; None means the whole library."""
+    if not os.path.isfile(PREFS_FILE):
+        return {"visible_limit": None}
+    try:
+        with open(PREFS_FILE) as f:
+            d = json.load(f)
+        v = d.get("visible_limit")
+        return {"visible_limit": int(v) if isinstance(v, int) and v > 0 else None}
+    except Exception:
+        return {"visible_limit": None}
+
+
+def save_prefs(prefs):
+    tmp = PREFS_FILE + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(prefs, f, indent=2)
+    os.replace(tmp, PREFS_FILE)
+
+
 def load_plays():
     if not os.path.isfile(PLAYS_FILE):
         return {}
@@ -117,10 +143,11 @@ def derive_id(rom_filename: str, override: dict) -> str:
     return override.get("id") or slugify(clean_title(rom_filename))
 
 
-def scan_games(only_system=None, tabletop_only=False):
+def scan_games(only_system=None, tabletop_only=False, apply_limit=False):
     overrides = load_overrides()
     plays = load_plays()
     seating_map = load_tabletop()
+    limit = load_prefs()["visible_limit"] if apply_limit else None
     games = []
     systems = (
         [only_system] if only_system in ALLOWED_SYSTEMS else sorted(ALLOWED_SYSTEMS)
@@ -155,6 +182,19 @@ def scan_games(only_system=None, tabletop_only=False):
                 "plays": plays.get(game_id, 0),
                 "seating": seating,
             })
+    if limit:
+        # Keep the most-played per system, alphabetical for the untouched
+        # remainder. A child-sized shelf should hold the games actually being
+        # played, not whatever sorts first — an alphabetical cut would offer
+        # "10-Yard Fight" and "1943" forever.
+        kept, by_system = [], {}
+        for g in games:
+            by_system.setdefault(g["system"], []).append(g)
+        for sys_games in by_system.values():
+            sys_games.sort(key=lambda g: (-g["plays"], g["title"].lower()))
+            kept.extend(sys_games[:limit])
+        kept.sort(key=lambda g: g["title"].lower())
+        return kept
     return games
 
 
@@ -173,7 +213,8 @@ def games():
     # on opposite sides of a cocktail cabinet — see backend/tabletop.json.
     tabletop_only = (request.args.get("tabletop") or "").strip() in ("1", "true", "yes")
     return jsonify({
-        "games": scan_games(only_system=only or None, tabletop_only=tabletop_only)
+        "games": scan_games(only_system=only or None, tabletop_only=tabletop_only,
+                            apply_limit=True)
     })
 
 
@@ -339,7 +380,11 @@ def get_settings():
     Report null when unavailable so the UI can hide the row rather than
     offering a control that does nothing.
     """
-    return jsonify({"volume": _get_volume(), "brightness": _get_brightness()})
+    return jsonify({
+        "volume": _get_volume(),
+        "brightness": _get_brightness(),
+        "visible_limit": load_prefs()["visible_limit"],
+    })
 
 
 @app.route("/api/volume", methods=["POST"])
@@ -362,6 +407,24 @@ def set_brightness():
         return jsonify({"ok": False, "error": "bad value"}), 400
     _run(["sudo", "ddcutil", "setvcp", "10", str(pct)], timeout=10)
     return jsonify({"ok": True, "brightness": pct})
+
+
+@app.route("/api/visible-limit", methods=["POST"])
+def set_visible_limit():
+    """Cap the grid at N games per system. Code-gated so a child cannot undo it.
+
+    A limit of 0 or null means the whole library.
+    """
+    data = request.get_json(silent=True) or {}
+    if str(data.get("code", "")) != PARENT_CODE:
+        return jsonify({"ok": False, "error": "bad code"}), 403
+    raw = data.get("value")
+    try:
+        val = None if raw in (None, 0, "0", "") else max(1, min(10, int(raw)))
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "bad value"}), 400
+    save_prefs({"visible_limit": val})
+    return jsonify({"ok": True, "visible_limit": val})
 
 
 @app.route("/api/shutdown", methods=["POST"])
