@@ -222,6 +222,13 @@ async function configureTopTile() {
   // they take a different launch path entirely — no core, no shader, and the
   // panel rotates 90 degrees for them.
   if (st.has_table) section.appendChild(mk("TABLE ARCADE", "table"));
+
+  // This runs asynchronously and REPLACES the section's contents, so the tile
+  // list rebuilt during load() still points at the button that used to live
+  // here. Without rebuilding, the switcher is drawn but unreachable: the
+  // D-pad can move around the game grid and never get up to it.
+  rebuildTileList();
+  applyFocus();
 }
 configureTopTile();
 

@@ -98,18 +98,24 @@
 
   // Cheap pads report the D-pad as buttons on some firmwares and as axes on
   // others, so accept either rather than guessing.
+  // Button numbering taken from the SAME RetroArch autoconfig these pads
+  // already use (iNNEXT SNES Gamepad: B=2 A=1 Y=3 X=0 L=4 R=5 Select=8
+  // Start=9), so a button does the same thing in these games as it does in
+  // every emulated one. Note the D-pad is on AXES here, not buttons 12-15 —
+  // the earlier guess of "buttons 0 or 1 are the action button" was actually
+  // X and A.
   var DEAD = 0.5;
   function readPad(gp) {
     if (!gp) return null;
     var b = gp.buttons, ax = gp.axes;
     function pressed(i) { return !!(b[i] && b[i].pressed); }
     return {
-      up:     pressed(12) || (ax[1] || 0) < -DEAD,
-      down:   pressed(13) || (ax[1] || 0) >  DEAD,
-      left:   pressed(14) || (ax[0] || 0) < -DEAD,
-      right:  pressed(15) || (ax[0] || 0) >  DEAD,
-      prim:   pressed(0) || pressed(1),
-      sec:    pressed(2) || pressed(3),
+      up:     (ax[1] || 0) < -DEAD || pressed(12),
+      down:   (ax[1] || 0) >  DEAD || pressed(13),
+      left:   (ax[0] || 0) < -DEAD || pressed(14),
+      right:  (ax[0] || 0) >  DEAD || pressed(15),
+      prim:   pressed(2) || pressed(1),   // B or A
+      sec:    pressed(3) || pressed(0),   // Y or X
       l:      pressed(4),
       r:      pressed(5),
       select: pressed(8),
@@ -132,10 +138,37 @@
     }
     return dot;
   }
+  // Board games are grids, so the cursor steps square by square instead of
+  // gliding. Free movement turns picking a chess square into a mousing
+  // exercise, which is exactly the feel we are trying to avoid.
+  var GRID = { chess: 8, checkers: 8, "drop-four": 7, "sea-strike": 8 };
+  function boardStep(dir) {
+    var cv = document.querySelector("canvas");
+    var n = GRID[GAME] || 8;
+    if (!cv) return false;
+    var r = cv.getBoundingClientRect();
+    if (r.width < 40) return false;
+    var cell = r.width / n;
+    // Snap onto the grid first, then move one square.
+    var col = Math.round((cx - r.left - cell / 2) / cell);
+    var row = Math.round((cy - r.top - cell / 2) / cell);
+    var rows = Math.max(1, Math.round(r.height / cell));
+    if (dir === "left") col--; else if (dir === "right") col++;
+    else if (dir === "up") row--; else if (dir === "down") row++;
+    col = Math.max(0, Math.min(n - 1, col));
+    row = Math.max(0, Math.min(rows - 1, row));
+    cx = r.left + col * cell + cell / 2;
+    cy = r.top + row * cell + cell / 2;
+    var d = cursorEl();
+    d.style.width = d.style.height = Math.round(cell) + "px";
+    d.style.margin = Math.round(-cell / 2) + "px 0 0 " + Math.round(-cell / 2) + "px";
+    d.style.borderRadius = "4px";
+    d.style.left = cx + "px"; d.style.top = cy + "px"; d.hidden = false;
+    return true;
+  }
+
   function moveCursor(p) {
     var moving = p.up || p.down || p.left || p.right;
-    // Accelerate while held: precise enough to pick a square, quick enough to
-    // cross a board without the player giving up.
     vel = moving ? Math.min(vel + 0.9, 22) : 4;
     if (p.left) cx -= vel;
     if (p.right) cx += vel;
@@ -169,6 +202,67 @@
     return !!(r && !r.hidden);
   }
 
+  // The games draw on-screen LEFT / BOOST / RIGHT buttons for touchscreens.
+  // This cabinet has no touchscreen, so they are decoration that eats space
+  // and invites people to press glass that does nothing. Hidden rather than
+  // deleted, so the games stay unmodified and a touch build still works.
+  function hideTouchControls() {
+    var pads = document.querySelectorAll(".pad");
+    for (var i = 0; i < pads.length; i++) pads[i].style.display = "none";
+  }
+  window.addEventListener("load", function () { setTimeout(hideTouchControls, 100); });
+
+
+  // ---- menu navigation ----------------------------------------------------
+  // Setup screens are real <button> elements, so a controller should move
+  // FOCUS between them the way every console menu has since 1990 — not push a
+  // mouse pointer around. The pointer is kept only for the board games, where
+  // there is genuinely nothing to focus.
+  var navIdx = 0;
+  function menuButtons() {
+    var all = document.querySelectorAll("button, a[href]");
+    var out = [];
+    for (var i = 0; i < all.length; i++) {
+      var el = all[i];
+      if (el.disabled) continue;
+      var r = el.getBoundingClientRect();
+      if (r.width < 4 || r.height < 4) continue;                 // hidden
+      if (r.bottom < 0 || r.top > window.innerHeight) continue;  // off-screen
+      if (el.closest && el.closest(".pad")) continue;            // touch-only
+      out.push({ el: el, r: r, cx: r.left + r.width / 2, cy: r.top + r.height / 2 });
+    }
+    return out;
+  }
+  function paintFocus(list) {
+    for (var i = 0; i < list.length; i++) {
+      list[i].el.style.outline = (i === navIdx) ? "4px solid #ff2e63" : "";
+      list[i].el.style.outlineOffset = (i === navIdx) ? "2px" : "";
+    }
+    if (list[navIdx]) {
+      var el = list[navIdx].el;
+      if (el.scrollIntoView) el.scrollIntoView({ block: "nearest" });
+    }
+  }
+  // Move to the nearest button in the pressed direction rather than the next
+  // in document order: these screens are laid out in rows of segmented
+  // choices, and index-order stepping wanders sideways off a row.
+  function navMove(list, dir) {
+    var cur = list[navIdx];
+    if (!cur) { navIdx = 0; return; }
+    var best = -1, bestScore = 1e9;
+    for (var i = 0; i < list.length; i++) {
+      if (i === navIdx) continue;
+      var dx = list[i].cx - cur.cx, dy = list[i].cy - cur.cy;
+      var along = dir === "left" ? -dx : dir === "right" ? dx
+                : dir === "up" ? -dy : dy;
+      if (along <= 2) continue;                       // wrong side
+      var across = (dir === "left" || dir === "right") ? Math.abs(dy) : Math.abs(dx);
+      var score = along + across * 3;                 // prefer straight ahead
+      if (score < bestScore) { bestScore = score; best = i; }
+    }
+    if (best >= 0) navIdx = best;
+  }
+
   var exitHeld = 0, leaving = false, banner = null;
   function showBanner(t) {
     if (!banner) {
@@ -183,6 +277,7 @@
   }
 
   var prevPrim = [false, false];
+  var navHeld = false;
 
   function tick() {
     var gs = pads();
@@ -207,17 +302,52 @@
     }
 
     if (!leaving) {
-      var cursorMode = IS_BOARD || setupVisible();
-      if (cursorMode) {
-        releaseAll();                       // never hold keys while pointing
-        var drv = (p1 && (p1.up || p1.down || p1.left || p1.right)) ? p1 : (p2 || p1);
-        if (drv) moveCursor(drv);
-        var both = [p1, p2];
-        for (var i = 0; i < 2; i++) {
-          var p = both[i];
-          if (!p) continue;
-          if (p.prim && !prevPrim[i]) clickAt(cx, cy);
-          prevPrim[i] = p.prim;
+      var onMenu = setupVisible();
+      if (onMenu) {
+        // Menus: move focus between buttons. No pointer.
+        releaseAll();
+        if (dot) dot.hidden = true;
+        var list = menuButtons();
+        if (list.length) {
+          if (navIdx >= list.length) navIdx = 0;
+          var drv = p1 || p2, alt = p2;
+          var dir = null;
+          [drv, alt].forEach(function (p) {
+            if (!p || dir) return;
+            if (p.up) dir = "up"; else if (p.down) dir = "down";
+            else if (p.left) dir = "left"; else if (p.right) dir = "right";
+          });
+          if (dir && !navHeld) { navMove(list, dir); navHeld = true; }
+          if (!dir) navHeld = false;
+          paintFocus(list);
+          var both1 = [p1, p2];
+          for (var q = 0; q < 2; q++) {
+            var pq = both1[q];
+            if (!pq) continue;
+            if (pq.prim && !prevPrim[q] && list[navIdx]) list[navIdx].el.click();
+            prevPrim[q] = pq.prim;
+          }
+        }
+      } else if (IS_BOARD) {
+        // Boards: a cursor is unavoidable (the board is a canvas), but it
+        // steps square to square rather than gliding like a mouse.
+        releaseAll();
+        var bp = p1 || p2;
+        var bdir = null;
+        [p1, p2].forEach(function (p) {
+          if (!p || bdir) return;
+          if (p.up) bdir = "up"; else if (p.down) bdir = "down";
+          else if (p.left) bdir = "left"; else if (p.right) bdir = "right";
+        });
+        if (bdir && !navHeld) { if (!boardStep(bdir)) moveCursor(bp); navHeld = true; }
+        if (!bdir) navHeld = false;
+        if (dot) dot.hidden = false;
+        var both2 = [p1, p2];
+        for (var z = 0; z < 2; z++) {
+          var pz = both2[z];
+          if (!pz) continue;
+          if (pz.prim && !prevPrim[z]) clickAt(cx, cy);
+          prevPrim[z] = pz.prim;
         }
       } else {
         if (dot) dot.hidden = true;
