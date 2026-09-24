@@ -504,7 +504,13 @@ setInterval(async () => {
     await fetch("/api/launch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ system: sys, rom: pick.rom }),
+      // Attract demos need the split as much as real play does — arguably more.
+      // This is the screen an idle cabinet shows, so an unsplit demo reads as
+      // a broken table to whoever walks past, not as a screensaver.
+      body: JSON.stringify(
+        tableMode ? { system: sys, rom: pick.rom, cocktail: 1 }
+                  : { system: sys, rom: pick.rom }
+      ),
     });
   } catch {}
 }, 5000);

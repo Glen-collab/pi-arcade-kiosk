@@ -159,6 +159,10 @@ fi
   # unshaded. It has to arrive as --set-shader on the command line, below.
   # Found by screenshotting a real launch and seeing an unsplit screen.
   if [ "$COCKTAIL" = "1" ] && [ -f "$COCKTAIL_PRESET" ]; then
+    # BOTH are required. --set-shader supplies the path but obeys this switch,
+    # so with video_shader_enable false in retroarch.cfg the preset is accepted
+    # and then ignored, and the game runs unsplit with no error anywhere.
+    echo 'video_shader_enable = "true"'
     echo 'video_force_aspect = "false"'
   else
     echo 'video_shader_enable = "false"'
