@@ -153,9 +153,12 @@ fi
   # letterbox the panel first — it would only do it once, for the whole
   # screen, and the shader would then be laying out inside an already-shrunk
   # viewport.
+  # video_force_aspect only. The shader itself CANNOT be set from here:
+  # RetroArch initialises its shader pipeline before --appendconfig is merged,
+  # so video_shader in an appended config is silently ignored and the game runs
+  # unshaded. It has to arrive as --set-shader on the command line, below.
+  # Found by screenshotting a real launch and seeing an unsplit screen.
   if [ "$COCKTAIL" = "1" ] && [ -f "$COCKTAIL_PRESET" ]; then
-    echo 'video_shader_enable = "true"'
-    echo "video_shader = \"$COCKTAIL_PRESET\""
     echo 'video_force_aspect = "false"'
   else
     echo 'video_shader_enable = "false"'
@@ -186,4 +189,10 @@ PS1MAP
   fi
 } > "$OVERRIDE_CFG"
 
-exec retroarch --appendconfig "$OVERRIDE_CFG" -L "$CORE_PATH" "$ROM_PATH"
+# --set-shader must be a real argument; see the note in the override block.
+SHADER_ARGS=()
+if [ "$COCKTAIL" = "1" ] && [ -f "$COCKTAIL_PRESET" ]; then
+  SHADER_ARGS=(--set-shader "$COCKTAIL_PRESET")
+fi
+
+exec retroarch --appendconfig "$OVERRIDE_CFG" ${SHADER_ARGS[@]+"${SHADER_ARGS[@]}"} -L "$CORE_PATH" "$ROM_PATH"
