@@ -285,6 +285,29 @@ def status_endpoint():
     })
 
 
+@app.route("/api/shutdown", methods=["POST"])
+def shutdown():
+    """Clean poweroff, so the cabinet's mains switch never has to yank a
+    running filesystem.
+
+    The Pi writes plays.json on every launch, so there is live writable state;
+    cutting power mid-write is how an arcade Pi eventually needs reflashing.
+    The picker offers this on Select+Start, the same combo that quits a game,
+    so there is nothing extra to learn and no extra button to wire.
+    """
+    global current_proc
+    if current_proc and current_proc.poll() is None:
+        current_proc.terminate()
+        try:
+            current_proc.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            current_proc.kill()
+    # Detached: systemd tears this service down as part of the shutdown, and a
+    # blocking call would be killed before it returned anyway.
+    subprocess.Popen(["sudo", "systemctl", "poweroff"])
+    return jsonify({"ok": True})
+
+
 @app.route("/api/quit", methods=["POST"])
 def quit_game():
     global current_proc

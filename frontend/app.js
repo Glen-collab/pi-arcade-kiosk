@@ -506,6 +506,59 @@ let lastInput = Date.now();
 let attractIdx = 0;
 let wasPlaying = false;
 
+// Select+Start on the picker = shut the cabinet down.
+//
+// The same combo quits a game back here, so there is one thing to learn and no
+// extra button to wire into the cabinet. It must be HELD, because the combo is
+// easy to brush while mashing and a cabinet that powers off mid-session is
+// worse than one with no shutdown at all. The overlay counts down so you can
+// see it coming and let go.
+const SHUTDOWN_HOLD_MS = 2000;
+const SELECT_BTN = 8, START_BTN = 9;
+let shutdownHeldSince = 0;
+let shuttingDown = false;
+
+function shutdownOverlay() {
+  let el = document.getElementById("shutdown-overlay");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "shutdown-overlay";
+    el.hidden = true;
+    document.body.appendChild(el);
+  }
+  return el;
+}
+
+function pollShutdownCombo() {
+  if (shuttingDown) return;
+  const el = shutdownOverlay();
+
+  // Only on the picker. While a game is up, RetroArch owns the combo and uses
+  // it to exit — shutting down instead would make quitting a game impossible.
+  if (wasPlaying) { shutdownHeldSince = 0; el.hidden = true; return; }
+
+  const held = listGamepads().some(
+    gp => gp.buttons[SELECT_BTN]?.pressed && gp.buttons[START_BTN]?.pressed
+  );
+  if (!held) { shutdownHeldSince = 0; el.hidden = true; return; }
+
+  const now = Date.now();
+  if (!shutdownHeldSince) shutdownHeldSince = now;
+  const left = SHUTDOWN_HOLD_MS - (now - shutdownHeldSince);
+
+  if (left > 0) {
+    el.hidden = false;
+    el.textContent = `SHUTTING DOWN IN ${Math.ceil(left / 1000)}...  RELEASE TO CANCEL`;
+    return;
+  }
+
+  shuttingDown = true;
+  el.hidden = false;
+  el.textContent = "SHUTTING DOWN - WAIT FOR THE SCREEN TO GO BLACK, THEN SWITCH OFF";
+  fetch("/api/shutdown", { method: "POST" }).catch(() => {});
+}
+setInterval(pollShutdownCombo, 100);
+
 function noteInput() { lastInput = Date.now(); }
 document.addEventListener("keydown",   noteInput, { capture: true });
 document.addEventListener("mousemove", noteInput, { capture: true });
