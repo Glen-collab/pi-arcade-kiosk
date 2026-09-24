@@ -55,6 +55,12 @@ SWITCH_TO_WORKOUTS = os.environ.get(
 app = Flask(__name__, static_folder=FRONTEND_DIR, static_url_path="")
 current_proc = None
 plays_lock = Lock()
+# Serialises the whole launch path. Without it, concurrent POSTs each read
+# current_proc before any of them writes it, so every request believes nothing
+# is running and spawns its own RetroArch. Twelve mashed launches produced
+# twelve emulators fighting over the display. The terminate-then-spawn pair has
+# to be atomic, not merely ordered.
+launch_lock = Lock()
 
 
 def clean_title(filename: str) -> str:
@@ -277,27 +283,37 @@ def launch():
     if not os.path.isfile(rom_path):
         return jsonify({"ok": False, "error": "rom not found"}), 404
 
-    if current_proc and current_proc.poll() is None:
-        current_proc.terminate()
-        try:
-            current_proc.wait(timeout=3)
-        except subprocess.TimeoutExpired:
-            current_proc.kill()
+    # Everything from "stop what's running" to "start the new one" happens
+    # under one lock. Ordering alone is not enough: concurrent POSTs each read
+    # current_proc before any of them writes it, so every request concludes
+    # nothing is running and spawns its own RetroArch. Twelve mashed launches
+    # produced twelve emulators fighting over one display.
+    with launch_lock:
+        if current_proc and current_proc.poll() is None:
+            current_proc.terminate()
+            try:
+                current_proc.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                current_proc.kill()
+        # Belt and braces: an instance that escaped tracking — a service
+        # restart mid-game, say — would otherwise linger forever.
+        subprocess.run(["pkill", "-x", "retroarch"], capture_output=True)
 
-    overrides = load_overrides()
-    game_id = derive_id(rom, overrides.get(rom, {}))
-    with plays_lock:
-        plays = load_plays()
-        plays[game_id] = plays.get(game_id, 0) + 1
-        save_plays(plays)
-        new_count = plays[game_id]
+        overrides = load_overrides()
+        game_id = derive_id(rom, overrides.get(rom, {}))
+        with plays_lock:
+            plays = load_plays()
+            plays[game_id] = plays.get(game_id, 0) + 1
+            save_plays(plays)
+            new_count = plays[game_id]
 
-    # 3rd arg = joypad index, 4th = num_users. launch_game.sh tolerates
-    # either being empty so positional order stays predictable.
-    # 5th arg = rotation, 6th = cocktail. Positional like the rest; the
-    # launcher tolerates empty strings for both.
-    cmd = [LAUNCHER, system, rom, joypad_index or "", num_users or "", rotation or "", cocktail]
-    current_proc = subprocess.Popen(cmd)
+        # 3rd arg = joypad index, 4th = num_users, 5th = rotation,
+        # 6th = cocktail. All positional; launch_game.sh tolerates empties so
+        # the order stays predictable.
+        cmd = [LAUNCHER, system, rom, joypad_index or "", num_users or "",
+               rotation or "", cocktail]
+        current_proc = subprocess.Popen(cmd)
+
     return jsonify({"ok": True, "plays": new_count})
 
 
