@@ -451,18 +451,21 @@ async function load() {
   } catch (e) { /* fall through — picker still loads */ }
   status.textContent = "LOADING...";
   try {
-    // The table-arcade games live outside the ROM scan entirely.
+    // The table-arcade games live outside the ROM scan entirely, so only the
+    // URL differs. Everything after this — rendering, rebuilding the gamepad
+    // navigation index, setting initial focus — MUST stay shared. Returning
+    // early here skipped rebuildTileList() and applyFocus(), so the tiles drew
+    // but the D-pad could not reach them: the games were visible and
+    // unselectable.
+    let url;
     if (systemFilter === "table") {
-      const res = await fetch("/api/table-games");
-      allGames = (await res.json()).games;
-      renderTop10(); renderAll(search.value || "");
-      status.textContent = `${allGames.length} TABLE GAMES`;
-      return;
+      url = "/api/table-games";
+    } else {
+      const q = [];
+      if (systemFilter) q.push(`system=${encodeURIComponent(systemFilter)}`);
+      if (tableMode) q.push("tabletop=1");
+      url = q.length ? `/api/games?${q.join("&")}` : "/api/games";
     }
-    const q = [];
-    if (systemFilter) q.push(`system=${encodeURIComponent(systemFilter)}`);
-    if (tableMode) q.push("tabletop=1");
-    const url = q.length ? `/api/games?${q.join("&")}` : "/api/games";
     const res = await fetch(url);
     const data = await res.json();
     allGames = data.games || [];
