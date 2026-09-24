@@ -21,6 +21,11 @@
 // loads .glsl.
 
 #pragma parameter GAME_ASPECT "Game aspect ratio" 1.3333 1.0 2.0 0.0167
+// Both halves show the SAME picture, so without a gap they read as one
+// continuous image and the eye keeps trying to join them across the middle.
+// A divider makes it obvious there are two views, not one wide one.
+#pragma parameter SEAM "Divider width (fraction of panel)" 0.022 0.0 0.12 0.002
+#pragma parameter SEAM_LINE "Divider centre line brightness" 0.22 0.0 1.0 0.02
 
 #if defined(VERTEX)
 
@@ -48,8 +53,12 @@ varying vec2 vTexCoord;
 
 #ifdef PARAMETER_UNIFORM
 uniform float GAME_ASPECT;
+uniform float SEAM;
+uniform float SEAM_LINE;
 #else
 #define GAME_ASPECT 1.3333
+#define SEAM 0.022
+#define SEAM_LINE 0.22
 #endif
 
 void main() {
@@ -58,10 +67,25 @@ void main() {
     // so the two agree without a flip.
     vec2 outUV = gl_FragCoord.xy / OutputSize;
 
+    // Carve a divider out of the middle before anything else. Drawn rather
+    // than overlaid, so neither half loses picture to it — each half is
+    // narrowed by the same amount instead.
+    float seamHalf = SEAM * 0.5;
+    float fromCentre = abs(outUV.x - 0.5);
+    if (fromCentre < seamHalf) {
+        // A faint centre line inside the gap reads as a deliberate divider.
+        // A plain black band just looks like the picture stops.
+        float line = 1.0 - smoothstep(0.0, seamHalf * 0.35, fromCentre);
+        gl_FragColor = vec4(vec3(SEAM_LINE * line), 1.0);
+        return;
+    }
+
     // Each player's view is a half-panel turned on its side: as wide as the
-    // panel is tall, and as tall as half the panel is wide.
+    // panel is tall, and as tall as what remains of half the panel's width
+    // once the divider has taken its share.
+    float halfW = 0.5 - seamHalf;
     float viewW = OutputSize.y;
-    float viewH = OutputSize.x * 0.5;
+    float viewH = OutputSize.x * halfW;
 
     // Map the fragment into the seated player's own frame, where p.x runs to
     // their right and p.y runs away from them.
@@ -74,9 +98,11 @@ void main() {
     // person opposite - a clean rotation, just 180 degrees out for the viewer.
     vec2 p;
     if (outUV.x < 0.5) {
-        p = vec2(outUV.y, 1.0 - outUV.x * 2.0);
+        float u = outUV.x / halfW;                       // 0..1 across the left half
+        p = vec2(outUV.y, 1.0 - u);
     } else {
-        p = vec2(1.0 - outUV.y, (outUV.x - 0.5) * 2.0);
+        float u = (outUV.x - 0.5 - seamHalf) / halfW;    // 0..1 across the right half
+        p = vec2(1.0 - outUV.y, u);
     }
 
     // Letterbox the game inside that view rather than stretching it. Done here
