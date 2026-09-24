@@ -26,6 +26,18 @@ physical — a monitor power brick, control panels, and the cabinet.**
 back an IPv6 link-local address that times out mid-handshake over WiFi. Or use
 the IP directly.
 
+**Boots straight into the arcade.** `pi-arcade.service` is enabled, and
+`install/labwc-autostart` (copied to `~/.config/labwc/autostart`) waits for the
+picker to answer, then respawns Chromium forever so a crash never leaves the
+cabinet on a desktop. Verified by an actual reboot: the Pi came up, started the
+picker, went idle, and fired a correctly-split attract demo with nobody
+touching it. Screen blanking is off.
+
+A user autostart REPLACES `/etc/xdg/labwc/autostart` rather than adding to it,
+which drops the desktop wallpaper, the taskbar and the XDG autostart apps. That
+is wanted here — no furniture behind the picker, nothing for a player to tap
+into. Audio is unaffected because pipewire runs from systemd user units.
+
 **Not done:** Tailscale. `sudo tailscale up` needs a browser to authorise, so
 it was left for Glen. Until then the Pi is LAN-only.
 
@@ -187,10 +199,14 @@ came back showing negative cost, which is impossible — run-to-run variance
 - Per-game core overrides, which would likely recover Stargate and Tuff E Nuff
 - Arcade core (MAME/FBNeo) — needed for 4-player Turtles and Gauntlet II, which
   are arcade ROMs, not console ports
-- Controller input is **completely untested** — nothing has ever been plugged
-  into this Pi, so the joypad-index and `num_users` logic is unexercised here
-- Audio is unverified; ALSA failed in every test because no HDMI sink is
-  attached
+- ~~Controller input untested~~ — **done.** Two DragonRise pads (`0079:0126`,
+  identical VID/PID) enumerate as js0/js1, both send input, the matching
+  `iNNEXT SNES Gamepad` autoconfig profile is found, and the launcher reports
+  `input_max_users = "2"`. Two-player Contra played.
+- ~~Audio unverified~~ — **done.** Re-enabled after benchmarking had left
+  `audio_enable = "false"` persisted in retroarch.cfg, and pointed at
+  `plughw:0,0` (the HDMI sink). Note the S2440L has NO speakers; its AUDIO OUT
+  is a line-out needing powered speakers.
 
 ---
 

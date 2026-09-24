@@ -1,0 +1,35 @@
+#!/bin/bash
+# Cocktail table autostart — runs on labwc session start.
+#
+# Follows the same shape as the BSA gym kiosk's autostart: force PATH and the
+# Wayland env (labwc invokes this with a minimal environment, and Chromium
+# misbehaves silently on a headless socket), then respawn Chromium forever so a
+# crash or an accidental quit never leaves the cabinet sitting on a desktop.
+
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+if [ -z "${WAYLAND_DISPLAY:-}" ]; then
+  for sock in "$XDG_RUNTIME_DIR"/wayland-*; do
+    name=$(basename "$sock")
+    case "$name" in *.lock) continue ;; esac
+    export WAYLAND_DISPLAY="$name"
+    break
+  done
+fi
+
+KIOSK=/home/pi/pi_arcade_kiosk/launcher/kiosk.sh
+URL="http://localhost:8088/?table=1"
+
+# Wait for the picker to answer before opening a browser at it, or the cabinet
+# comes up on a connection-refused page and stays there.
+for i in $(seq 1 60); do
+  curl -sf -o /dev/null "http://localhost:8088/" && break
+  sleep 1
+done
+
+# Respawn loop. Select+Start quits RetroArch back to the picker, but if a user
+# somehow closes Chromium itself the cabinet must not end up at a desktop.
+while true; do
+  "$KIOSK" "$URL"
+  sleep 3
+done &
