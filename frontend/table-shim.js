@@ -303,6 +303,52 @@
   // CSS and look like the game rather than like a debug list; selecting one
   // clicks the ORIGINAL, which still works even while hidden.
   var paused = false, pauseIdx = 0, pauseEl = null, prevStart = [false, false];
+  // "main" = this game's controls. "games" = the table-arcade line-up.
+  // Switching between table games is a plain navigation on the same origin:
+  // same browser, same portrait rotation, no kiosk restart. Going out to the
+  // picker and back costs a rotation flip each way for no reason.
+  var pauseView = "main", tableList = null;
+
+  fetch("/api/table-games").then(function (r) { return r.json(); })
+    .then(function (d) { tableList = d.games || []; })["catch"](function () {});
+
+  // A synthetic row that still looks like one of the game's own buttons.
+  function fakeButton(label) {
+    var model = document.querySelector(".controls button, .px");
+    var el = model ? model.cloneNode(false) : document.createElement("button");
+    el.removeAttribute("id");
+    el.removeAttribute("data-act");
+    el.textContent = label;
+    return el;
+  }
+
+  function pauseItems() {
+    if (pauseView === "games") {
+      var rows = [{ label: "◀ BACK", act: "back" }];
+      var here = (location.pathname.match(/([^/]+\.html)$/) || [])[1];
+      for (var i = 0; tableList && i < tableList.length; i++) {
+        var g = tableList[i];
+        rows.push({
+          label: (g.rom === here ? "▸ " : "  ") + g.title,
+          act: "play", rom: g.rom
+        });
+      }
+      return rows;
+    }
+    var out = [{ label: "▸ SWITCH TABLE GAME", act: "switch" }];
+    var ctl = controlEls();
+    for (var j = 0; j < ctl.length; j++) {
+      var t = (ctl[j].textContent || "").trim();
+      // The game's own MENU means "their index", which this cabinet never
+      // wants. Relabel it as what it actually does here.
+      if (ctl[j].tagName === "A" || /^◀?\s*MENU$/i.test(t)) {
+        out.push({ label: "◀ EXIT TO ARCADE", act: "exit" });
+      } else {
+        out.push({ label: t, act: "click", el: ctl[j] });
+      }
+    }
+    return out;
+  }
 
   // Injected into <head>, not into the overlay. Styles placed inside the
   // overlay are destroyed the moment drawPause() sets innerHTML — which is
@@ -353,10 +399,11 @@
     box.innerHTML = "";
     var t = document.createElement("div");
     t.id = "pz-title";
-    t.textContent = "PAUSED";
+    t.textContent = pauseView === "games" ? "TABLE ARCADE" : "PAUSED";
     box.appendChild(t);
     for (var i = 0; i < items.length; i++) {
-      var c = items[i].cloneNode(true);       // keeps the game's own classes
+      var src = items[i].el;
+      var c = src ? src.cloneNode(true) : fakeButton(items[i].label);
       c.removeAttribute("id");
       c.removeAttribute("href");              // never navigate from a clone
       // cloneNode copies inline styles, and the originals are display:none
@@ -364,7 +411,8 @@
       // invisible row, so the highlighted entry vanished as you moved off it.
       c.style.display = "";
       c.style.visibility = "";
-      c.className = items[i].className + " pz-item" + (i === pauseIdx ? " sel" : "");
+      if (!src) c.textContent = items[i].label;
+      c.className = (c.className || "") + " pz-item" + (i === pauseIdx ? " sel" : "");
       box.appendChild(c);
     }
     var h = document.createElement("div");
@@ -397,10 +445,11 @@
     }
     hideControls(false);        // clones must measure against real styles
     paused = true;
+    pauseView = "main";
     pauseIdx = 0;
     releaseAll();
     if (!IS_BOARD) { setKey("KeyP", true); setKey("KeyP", false); }
-    drawPause(controlEls());
+    drawPause(pauseItems());
     hideControls(true);
     pauseEl.hidden = false;
   }
@@ -488,7 +537,7 @@
     }
 
     if (paused && !leaving) {
-      var btns = controlEls();
+      var btns = pauseItems();
       var pdir = null;
       [p1, p2].forEach(function (p) {
         if (!p || pdir) return;
@@ -498,7 +547,7 @@
         pauseIdx = pdir === "up"
           ? (pauseIdx - 1 + btns.length) % btns.length
           : (pauseIdx + 1) % btns.length;
-        drawPause(btns);
+        drawPause(pauseItems());
         navHeld = true;
       }
       if (!pdir) navHeld = false;
@@ -506,17 +555,20 @@
         var pv = pk === 0 ? p1 : p2;
         if (!pv) continue;
         if (pv.prim && !prevPrim[pk]) {
-          var target = btns[pauseIdx];
-          closePause(false);
-          if (target) {
-            // The games' MENU is a link to their own index. On this cabinet
-            // the picker is the menu, so send it there instead.
-            if (target.tagName === "A" || /MENU/i.test(target.textContent || "")) {
-              backToPicker();
-            } else {
-              target.click();
-            }
+          var it = btns[pauseIdx];
+          prevPrim[pk] = pv.prim;
+          if (!it) continue;
+          if (it.act === "switch") { pauseView = "games"; pauseIdx = 0; drawPause(pauseItems()); continue; }
+          if (it.act === "back")   { pauseView = "main";  pauseIdx = 0; drawPause(pauseItems()); continue; }
+          if (it.act === "play") {
+            // Same origin, same rotation, same browser — just go there.
+            releaseAll();
+            location.href = "/table/games/" + it.rom;
+            continue;
           }
+          closePause(false);
+          if (it.act === "exit") backToPicker();
+          else if (it.el) it.el.click();
         }
         prevPrim[pk] = pv.prim;
       }
