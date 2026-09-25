@@ -59,19 +59,21 @@ adopt() {
     echo "    adopting existing $dir"
     local tmp
     tmp=$(mktemp -d)
+    # Bail out before touching $dir if the clone failed, or the mv below
+    # half-adopts the directory and leaves it in a state no re-run can fix.
     if [ -n "$branch" ]; then
-      git clone -q -b "$branch" "$repo" "$tmp/c"
+      git clone -q -b "$branch" "$repo" "$tmp/c" || { rm -rf "$tmp"; return 1; }
     else
-      git clone -q "$repo" "$tmp/c"
+      git clone -q "$repo" "$tmp/c" || { rm -rf "$tmp"; return 1; }
     fi
     mv "$tmp/c/.git" "$dir/.git"
     rm -rf "$tmp"
     git -C "$dir" reset -q     # tree untouched; git now reports what differs
   else
     if [ -n "$branch" ]; then
-      git clone -q -b "$branch" "$repo" "$dir"
+      git clone -q -b "$branch" "$repo" "$dir" || return 1
     else
-      git clone -q "$repo" "$dir"
+      git clone -q "$repo" "$dir" || return 1
     fi
   fi
 }
@@ -79,8 +81,23 @@ adopt() {
 say "Fetching the kiosk"
 adopt "$KIOSK_DIR" "$KIOSK_REPO" "$KIOSK_BRANCH"
 
+# table-arcade is a private repo, so an unattended Pi has no credentials for
+# it. Never let git sit at a username prompt: with no terminal that hangs
+# forever, and the whole install stops on a blank line with no explanation.
 say "Fetching the table games"
-adopt "$GAMES_DIR" "$GAMES_REPO"
+export GIT_TERMINAL_PROMPT=0
+if ! adopt "$GAMES_DIR" "$GAMES_REPO"; then
+  echo ""
+  echo "    Could not read $GAMES_REPO — it is private and this Pi has no"
+  echo "    GitHub credentials. Pick one:"
+  echo ""
+  echo "      a) gh auth login        (on this Pi, then re-run this script)"
+  echo "      b) make the repo public (it holds no ROMs and no keys)"
+  echo "      c) copy them from the first cabinet:"
+  echo "           rsync -a -e 'ssh -4' ~/table-arcade/ $USER_NAME@$(hostname).local:table-arcade/"
+  echo ""
+  echo "    Everything else will still install; the TABLE ARCADE tab will be empty."
+fi
 
 mkdir -p "$KIOSK_DIR/roms/nes" "$KIOSK_DIR/roms/snes" "$KIOSK_DIR/roms/n64" "$KIOSK_DIR/roms/gba"
 chmod +x "$KIOSK_DIR"/launcher/*.sh "$KIOSK_DIR"/install/*.sh

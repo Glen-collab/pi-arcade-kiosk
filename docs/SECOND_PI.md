@@ -39,8 +39,12 @@ Ten to fifteen minutes, mostly apt. It ends by checking its own work: picker
 responding, table games served, both emulator cores present, ROM counts. If
 something is wrong it says so rather than claiming success.
 
-The repos are private, so `git clone` will ask for credentials. Either run
-`gh auth login` first, or make the repos public.
+`pi-arcade-kiosk` is public, so that part needs no credentials. `table-arcade`
+is private: the script will report that it could not read it and carry on
+installing everything else, leaving the TABLE ARCADE tab empty. Fix it by
+running `gh auth login` on the Pi and re-running, by making that repo public
+(it holds no ROMs and no keys), or by rsyncing the folder from the first
+cabinet — the script prints all three.
 
 **4. Copy the ROMs.** From the *first* cabinet:
 
