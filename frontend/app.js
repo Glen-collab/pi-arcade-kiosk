@@ -271,9 +271,15 @@ function moveFocus(direction) {
     if (direction === "right" && dx <=  8) continue;
     // Weight the perpendicular axis more so up/down doesn't drift
     // diagonally across the grid.
+    // Left/right must stay inside the row you are already on. Without this,
+    // stepping sideways along the ALL GAMES / NES / SNES / TABLE bar would
+    // drop into a MOST PLAYED tile below, because that tile is physically
+    // nearer than the next wide button across. Up/down deliberately does NOT
+    // get this penalty — crossing between sections is the whole point of it.
+    const sameRow = tiles[i].parentElement === tiles[focusIdx].parentElement;
     const score = (direction === "up" || direction === "down")
       ? Math.abs(dy) + Math.abs(dx) * 2
-      : Math.abs(dx) + Math.abs(dy) * 2;
+      : Math.abs(dx) + Math.abs(dy) * 2 + (sameRow ? 0 : 2000);
     if (score < bestScore) { bestScore = score; best = i; }
   }
   if (best !== -1) {

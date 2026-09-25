@@ -195,11 +195,23 @@
 
   // The games hide #setup once play starts, and ignore keys entirely while it
   // is visible — so that is exactly when the cursor has to drive the buttons.
+  // Any screen that is asking you to press a button, not just the start
+  // screen. Light Racer's end-of-match panel is <div class="overlay" id="over">
+  // — checking only #setup and #rules left REMATCH and MENU unreachable,
+  // because the shim stayed in key mode and nothing was clicking them.
   function setupVisible() {
-    var s = document.querySelector("#setup");
-    if (s && !s.hidden) return true;
-    var r = document.querySelector("#rules");
-    return !!(r && !r.hidden);
+    var ids = ["#setup", "#rules", "#over"];
+    for (var i = 0; i < ids.length; i++) {
+      var el = document.querySelector(ids[i]);
+      if (el && !el.hidden && el.offsetParent !== null) return true;
+    }
+    // Catch-all for the games that name their panels differently.
+    var panels = document.querySelectorAll(".overlay, .modal");
+    for (var j = 0; j < panels.length; j++) {
+      var q = panels[j];
+      if (!q.hidden && q.offsetParent !== null && q.querySelector("button")) return true;
+    }
+    return false;
   }
 
   // The games draw on-screen LEFT / BOOST / RIGHT buttons for touchscreens.
