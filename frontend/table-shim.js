@@ -466,6 +466,20 @@
   // look like: their id, how many buttons and axes, and the live axis values.
   // Pad layout differs between models and the browser remaps some of them, so
   // "the D-pad does not move the menu" is not diagnosable from the outside.
+  // Menu actions are logged because the cabinet has no console: "nothing
+  // happened when I chose it" has several possible causes — the entry was
+  // never reached, the click went to an element nobody wired up, or the whole
+  // branch was skipped because the shim thought it was already leaving.
+  function logMenu(what, extra) {
+    var d = { menu: what, leaving: leaving, paused: paused };
+    for (var k in extra) d[k] = extra[k];
+    try {
+      fetch("/api/shim-log", { method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(d) });
+    } catch (e) {}
+  }
+
   var padsReported = false;
   function reportPads() {
     if (padsReported) return;
@@ -623,11 +637,16 @@
       // move the selection too. A menu is the one place where being unable to
       // read one input means being unable to leave, so every plausible control
       // is accepted rather than the correct one.
+      // Up/down only, plus the shoulders. Left/right was aliased here as a
+      // hedge against an unreadable D-pad, and it backfired: in pinball the
+      // flippers ARE left and right on the D-pad, so holding a flipper walked
+      // the selection on its own. The pad report shows the D-pad reporting
+      // cleanly on the axes, so the hedge was never needed.
       var pdir = null;
       [p1, p2].forEach(function (p) {
         if (!p || pdir) return;
-        if (p.up || p.left || p.l) pdir = "up";
-        else if (p.down || p.right || p.r) pdir = "down";
+        if (p.up || p.l) pdir = "up";
+        else if (p.down || p.r) pdir = "down";
       });
       if (pdir && !navHeld) {
         pauseIdx = pdir === "up"
@@ -644,6 +663,9 @@
           var it = btns[pauseIdx];
           prevPrim[pk] = pv.prim;
           if (!it) continue;
+          logMenu("select", { idx: pauseIdx, act: it.act, label: it.label,
+                              items: btns.length, view: pauseView,
+                              hasEl: !!it.el, tableGames: tableList ? tableList.length : -1 });
           if (it.act === "switch") { pauseView = "games"; pauseIdx = 0; drawPause(pauseItems()); continue; }
           if (it.act === "back")   { pauseView = "main";  pauseIdx = 0; drawPause(pauseItems()); continue; }
           if (it.act === "play") {
