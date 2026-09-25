@@ -38,27 +38,49 @@ say() { echo ""; echo "==> $*"; }
 say "Installing packages"
 sudo apt-get update -qq
 sudo apt-get install -y -qq \
-  git curl unzip \
+  git curl unzip rsync \
   retroarch libretro-nestopia libretro-snes9x libretro-mgba \
   chromium python3-flask \
   labwc wlr-randr ddcutil wireplumber
 
 # --- 2. repos ---------------------------------------------------------------
+# A directory that exists but is not a checkout is the normal state of the
+# FIRST cabinet, which was built by copying files over SSH long before any of
+# this was in git. Clone alongside and move the git metadata in, so the working
+# tree — with its ROMs, play counts and parent settings — survives being
+# adopted rather than being cloned over the top of.
+adopt() {
+  local dir="$1" repo="$2" branch="${3:-}"
+  if [ -d "$dir/.git" ]; then
+    git -C "$dir" fetch -q origin
+    [ -n "$branch" ] && git -C "$dir" checkout -q "$branch"
+    git -C "$dir" pull -q --ff-only || echo "    (diverged or local changes — left alone)"
+  elif [ -d "$dir" ]; then
+    echo "    adopting existing $dir"
+    local tmp
+    tmp=$(mktemp -d)
+    if [ -n "$branch" ]; then
+      git clone -q -b "$branch" "$repo" "$tmp/c"
+    else
+      git clone -q "$repo" "$tmp/c"
+    fi
+    mv "$tmp/c/.git" "$dir/.git"
+    rm -rf "$tmp"
+    git -C "$dir" reset -q     # tree untouched; git now reports what differs
+  else
+    if [ -n "$branch" ]; then
+      git clone -q -b "$branch" "$repo" "$dir"
+    else
+      git clone -q "$repo" "$dir"
+    fi
+  fi
+}
+
 say "Fetching the kiosk"
-if [ -d "$KIOSK_DIR/.git" ]; then
-  git -C "$KIOSK_DIR" fetch -q origin "$KIOSK_BRANCH"
-  git -C "$KIOSK_DIR" checkout -q "$KIOSK_BRANCH"
-  git -C "$KIOSK_DIR" pull -q --ff-only
-else
-  git clone -q -b "$KIOSK_BRANCH" "$KIOSK_REPO" "$KIOSK_DIR"
-fi
+adopt "$KIOSK_DIR" "$KIOSK_REPO" "$KIOSK_BRANCH"
 
 say "Fetching the table games"
-if [ -d "$GAMES_DIR/.git" ]; then
-  git -C "$GAMES_DIR" pull -q --ff-only
-else
-  git clone -q "$GAMES_REPO" "$GAMES_DIR"
-fi
+adopt "$GAMES_DIR" "$GAMES_REPO"
 
 mkdir -p "$KIOSK_DIR/roms/nes" "$KIOSK_DIR/roms/snes" "$KIOSK_DIR/roms/n64" "$KIOSK_DIR/roms/gba"
 chmod +x "$KIOSK_DIR"/launcher/*.sh "$KIOSK_DIR"/install/*.sh
@@ -66,8 +88,9 @@ chmod +x "$KIOSK_DIR"/launcher/*.sh "$KIOSK_DIR"/install/*.sh
 # --- 3. RetroArch -----------------------------------------------------------
 say "Configuring RetroArch"
 mkdir -p "$USER_HOME/.config/retroarch"
-# Never overwrite a live config: it carries per-cabinet input binds. Back the
-# old one up so a re-run on a working cabinet is recoverable.
+# Never silently overwrite a live config: RetroArch rewrites this file itself
+# and it ends up carrying per-cabinet input binds. Back it up first so a re-run
+# on a working cabinet is always recoverable.
 if [ -f "$USER_HOME/.config/retroarch/retroarch.cfg" ] && \
    ! cmp -s "$KIOSK_DIR/install/retroarch.cfg" "$USER_HOME/.config/retroarch/retroarch.cfg"; then
   cp "$USER_HOME/.config/retroarch/retroarch.cfg" \
@@ -76,8 +99,9 @@ fi
 cp "$KIOSK_DIR/install/retroarch.cfg" "$USER_HOME/.config/retroarch/retroarch.cfg"
 
 # Joypad profiles. Without these RetroArch reports "not configured" for every
-# pad and no button does anything — including the one that quits the game, so
-# the cabinet locks up on the first launch. ~430 profiles, one download.
+# pad and no button does anything — including the combo that quits back to the
+# picker, so the cabinet locks up on the first launch. ~430 profiles, one
+# download.
 AUTOCFG="$USER_HOME/.config/retroarch/autoconfig"
 mkdir -p "$AUTOCFG"
 if [ -z "$(ls -A "$AUTOCFG" 2>/dev/null)" ]; then
@@ -90,12 +114,24 @@ if [ -z "$(ls -A "$AUTOCFG" 2>/dev/null)" ]; then
   echo "    $(ls "$AUTOCFG"/*.cfg | wc -l) profiles"
 fi
 
+# The cocktail shader. launch_game.sh looks for it at
+# ~/.config/retroarch/shaders/cocktail-2p.glslp and, when it is missing, runs
+# the game perfectly well WITHOUT the split — the worst kind of failure,
+# because nothing errors and the cabinet merely looks wrong. On the first
+# cabinet this was copied here by hand and never written down.
+say "Installing the cocktail shader"
+mkdir -p "$USER_HOME/.config/retroarch/shaders"
+cp "$KIOSK_DIR/shaders/"cocktail-2p.glsl* "$USER_HOME/.config/retroarch/shaders/"
+
 # N64 core is not packaged by Debian; pull the nightly build.
 if [ ! -f "$LIBRETRO_DIR/parallel_n64_libretro.so" ]; then
   say "Installing parallel_n64 core"
-  curl -sL "https://buildbot.libretro.com/nightly/linux/${ARCH/arm64/aarch64}/latest/parallel_n64_libretro.so.zip" \
-    -o /tmp/pn64.zip && sudo unzip -oq /tmp/pn64.zip -d "$LIBRETRO_DIR/" || \
+  if curl -sfL "https://buildbot.libretro.com/nightly/linux/${ARCH/arm64/aarch64}/latest/parallel_n64_libretro.so.zip" \
+       -o /tmp/pn64.zip; then
+    sudo unzip -oq /tmp/pn64.zip -d "$LIBRETRO_DIR/"
+  else
     echo "    (skipped: buildbot unreachable, N64 will be unavailable)"
+  fi
   rm -f /tmp/pn64.zip
 fi
 
@@ -103,7 +139,7 @@ fi
 # The USER copy at ~/.config/labwc/autostart overrides /etc/xdg/labwc/autostart,
 # which is where Raspberry Pi OS keeps the desktop and taskbar. Dropping ours
 # here silently replaces both with Chromium and leaves the stock file intact,
-# so removing this one file gives you the normal desktop back.
+# so deleting this one file gives the normal desktop back.
 say "Installing kiosk autostart"
 mkdir -p "$USER_HOME/.config/labwc"
 sed "s|/home/pi/pi_arcade_kiosk|$KIOSK_DIR|g" \
@@ -121,18 +157,28 @@ sudo systemctl restart pi-arcade
 # --- 6. check ---------------------------------------------------------------
 say "Checking"
 ok=1
+code=""
 for i in $(seq 1 30); do
   code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8088/ || true)
   [ "$code" = "200" ] && break
   sleep 1
 done
-[ "${code:-}" = "200" ] && echo "    picker responds (HTTP 200)" || { echo "    PICKER NOT RESPONDING"; ok=0; }
+if [ "$code" = "200" ]; then echo "    picker responds (HTTP 200)"
+else echo "    PICKER NOT RESPONDING"; ok=0; fi
 
 tcode=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8088/table/games/pinball/index.html || true)
-[ "$tcode" = "200" ] && echo "    table games served" || { echo "    TABLE GAMES MISSING (is $GAMES_DIR populated?)"; ok=0; }
+if [ "$tcode" = "200" ]; then echo "    table games served"
+else echo "    TABLE GAMES MISSING (is $GAMES_DIR populated?)"; ok=0; fi
+
+if [ -f "$USER_HOME/.config/retroarch/shaders/cocktail-2p.glslp" ]; then
+  echo "    cocktail shader installed"
+else
+  echo "    COCKTAIL SHADER MISSING"; ok=0
+fi
 
 for c in nestopia_libretro.so snes9x_libretro.so; do
-  [ -f "$LIBRETRO_DIR/$c" ] && echo "    core $c" || { echo "    MISSING CORE $c"; ok=0; }
+  if [ -f "$LIBRETRO_DIR/$c" ]; then echo "    core $c"
+  else echo "    MISSING CORE $c"; ok=0; fi
 done
 
 nes=$(ls -1 "$KIOSK_DIR/roms/nes" 2>/dev/null | wc -l)

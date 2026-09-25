@@ -84,3 +84,26 @@ that is actually finished.
 - **Install a PS1 or arcade core.** Neither is in use yet.
 - **Set up Tailscale.** Still worth doing if you want to reach a cabinet that
   is not on your wifi.
+
+## What was verified, and how
+
+A second Pi does not exist yet, so the install was tested by simulating one on
+the first cabinet: a throwaway config directory containing exactly what
+`bootstrap.sh` writes, then RetroArch launched against it with the per-launch
+cocktail override the picker uses.
+
+- **The cocktail shader loads from a clean config.** Proven by running twice and
+  diffing the logs. Without `--set-shader` RetroArch logs `Stock GLSL shaders
+  will be used` and creates no framebuffer object; with it, that warning
+  disappears and it creates the viewport FBO the shader pass needs.
+- **Audio comes up on the packaged config.** The live cabinet has
+  `audio_device = "plughw:0,0"` written into it, which the repo config does not
+  set — and deliberately still does not, because card ordering differs between
+  machines and hardcoding it would be more likely to break a second Pi than fix
+  it. ALSA's default device worked in the test. If a new cabinet is silent,
+  that setting is the first thing to try.
+
+What this did NOT prove: that the split looks right at both seats on the second
+cabinet's monitor. That needs eyes on the actual table. It was measured on the
+first one (0.9976 correlation against the expected image at both seats), and
+the shader is byte-identical, so the remaining risk is the panel, not the code.
