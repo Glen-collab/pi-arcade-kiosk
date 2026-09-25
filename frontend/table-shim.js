@@ -286,6 +286,80 @@
     if (best >= 0) navIdx = best;
   }
 
+
+  // ---- pause menu ---------------------------------------------------------
+  // Every game keeps its controls — NEW GAME, TAKE BACK, RESIGN, TABLE VIEW,
+  // MENU — as a permanent row under the playfield. That is right for a mouse
+  // and wrong for a cabinet: on the board games the cursor is confined to the
+  // board grid and can never reach them, and on a table they are just clutter
+  // at somebody's elbow.
+  //
+  // Start opens them as a pause overlay instead. The buttons are scraped from
+  // the game's own DOM and clicked for real, so this works for all eleven
+  // without knowing anything about any of them.
+  var paused = false, pauseIdx = 0, pauseEl = null, prevStart = [false, false];
+
+  function gameButtons() {
+    var all = document.querySelectorAll("button");
+    var out = [];
+    for (var i = 0; i < all.length; i++) {
+      var el = all[i];
+      if (el.disabled) continue;
+      if (pauseEl && pauseEl.contains(el)) continue;     // our own overlay
+      if (el.closest && el.closest(".pad")) continue;     // touch-only controls
+      if (!shown(el)) continue;
+      var t = (el.textContent || "").trim();
+      if (!t) continue;
+      out.push(el);
+    }
+    return out;
+  }
+
+  function drawPause() {
+    var btns = gameButtons();
+    if (pauseIdx >= btns.length) pauseIdx = 0;
+    var rows = "";
+    for (var i = 0; i < btns.length; i++) {
+      var t = (btns[i].textContent || "").trim();
+      rows += '<div class="pz-row' + (i === pauseIdx ? " sel" : "") + '">' + t + "</div>";
+    }
+    pauseEl.innerHTML =
+      '<div class="pz-box"><div class="pz-title">PAUSED</div>' + rows +
+      '<div class="pz-hint">D-PAD move &middot; B select &middot; START resume</div></div>';
+    pauseEl.hidden = false;
+    return btns;
+  }
+
+  function openPause() {
+    if (!pauseEl) {
+      pauseEl = document.createElement("div");
+      pauseEl.style.cssText =
+        "position:fixed;inset:0;z-index:100000;display:flex;align-items:center;" +
+        "justify-content:center;background:rgba(4,2,12,.92);font-family:monospace";
+      var st = document.createElement("style");
+      st.textContent =
+        ".pz-box{min-width:22rem;padding:1.4rem 1.8rem;border:2px solid #ff2e63;border-radius:6px;background:#0b0b12}" +
+        ".pz-title{color:#ff2e63;letter-spacing:.14em;font-size:1.3rem;margin-bottom:1rem}" +
+        ".pz-row{color:#cfd0e0;font-size:1.25rem;padding:.5rem .7rem;border:2px solid transparent}" +
+        ".pz-row.sel{color:#fff;border-color:#ff2e63;background:rgba(255,46,99,.14)}" +
+        ".pz-hint{margin-top:1rem;color:#6f7086;font-size:.85rem;letter-spacing:.06em}";
+      pauseEl.appendChild(st);
+      document.body.appendChild(pauseEl);
+    }
+    paused = true;
+    pauseIdx = 0;
+    releaseAll();
+    // Real-time games pause on P. Board games ignore it, which is harmless.
+    if (!IS_BOARD) { setKey("KeyP", true); setKey("KeyP", false); }
+    drawPause();
+  }
+
+  function closePause(resumeGame) {
+    paused = false;
+    if (pauseEl) pauseEl.hidden = true;
+    if (resumeGame && !IS_BOARD) { setKey("KeyP", true); setKey("KeyP", false); }
+  }
+
   var exitHeld = 0, leaving = false, banner = null;
   function showBanner(t) {
     if (!banner) {
@@ -322,6 +396,46 @@
     } else if (!wantExit) {
       exitHeld = 0;
       if (banner) banner.hidden = true;
+    }
+
+    // Start alone toggles pause. Select+Start is the exit combo, so a Start
+    // press with Select held must not also open the menu on the way out.
+    for (var sp = 0; sp < 2; sp++) {
+      var pd = sp === 0 ? p1 : p2;
+      if (!pd) continue;
+      if (pd.start && !pd.select && !prevStart[sp] && !leaving) {
+        paused ? closePause(true) : openPause();
+      }
+      prevStart[sp] = pd.start;
+    }
+
+    if (paused && !leaving) {
+      var btns = gameButtons();
+      var pdir = null;
+      [p1, p2].forEach(function (p) {
+        if (!p || pdir) return;
+        if (p.up) pdir = "up"; else if (p.down) pdir = "down";
+      });
+      if (pdir && !navHeld) {
+        pauseIdx = pdir === "up"
+          ? (pauseIdx - 1 + btns.length) % btns.length
+          : (pauseIdx + 1) % btns.length;
+        drawPause();
+        navHeld = true;
+      }
+      if (!pdir) navHeld = false;
+      for (var pk = 0; pk < 2; pk++) {
+        var pv = pk === 0 ? p1 : p2;
+        if (!pv) continue;
+        if (pv.prim && !prevPrim[pk]) {
+          var target = btns[pauseIdx];
+          closePause(false);
+          if (target) target.click();
+        }
+        prevPrim[pk] = pv.prim;
+      }
+      requestAnimationFrame(tick);
+      return;
     }
 
     if (!leaving) {
