@@ -105,15 +105,38 @@
   // the earlier guess of "buttons 0 or 1 are the action button" was actually
   // X and A.
   var DEAD = 0.5;
+  // Some cheap pads — the DragonRise SNES clones this cabinet uses among them —
+  // report the D-pad as a HAT on a single high axis rather than as axes 0/1 or
+  // as buttons 12-15. Eight directions are encoded as fractions across the
+  // axis range, with a value outside [-1,1] (or a resting 0) meaning centred.
+  //
+  // Missing this is invisible in a game and obvious in a menu: the flippers
+  // still work because those are mapped to the shoulders as well, so the pad
+  // looks fine right up until you try to move a selection.
+  function hatDir(ax) {
+    for (var i = 2; i < ax.length; i++) {
+      var v = ax[i];
+      if (typeof v !== "number" || v < -1.05 || v > 1.05) continue;
+      if (Math.abs(v) < 0.2) continue;                  // centred
+      var k = Math.round(((v + 1) / 2) * 8) % 8;        // 0=up, clockwise
+      return { up: k === 0 || k === 1 || k === 7,
+               right: k >= 1 && k <= 3,
+               down: k >= 3 && k <= 5,
+               left: k >= 5 && k <= 7 };
+    }
+    return null;
+  }
+
   function readPad(gp) {
     if (!gp) return null;
     var b = gp.buttons, ax = gp.axes;
     function pressed(i) { return !!(b[i] && b[i].pressed); }
+    var hat = hatDir(ax) || {};
     return {
-      up:     (ax[1] || 0) < -DEAD || pressed(12),
-      down:   (ax[1] || 0) >  DEAD || pressed(13),
-      left:   (ax[0] || 0) < -DEAD || pressed(14),
-      right:  (ax[0] || 0) >  DEAD || pressed(15),
+      up:     (ax[1] || 0) < -DEAD || pressed(12) || !!hat.up,
+      down:   (ax[1] || 0) >  DEAD || pressed(13) || !!hat.down,
+      left:   (ax[0] || 0) < -DEAD || pressed(14) || !!hat.left,
+      right:  (ax[0] || 0) >  DEAD || pressed(15) || !!hat.right,
       prim:   pressed(2) || pressed(1),   // B or A
       sec:    pressed(3) || pressed(0),   // Y or X
       l:      pressed(4),
@@ -439,7 +462,42 @@
     box.appendChild(h);
   }
 
+  // One line in the kiosk log per session describing what the pads actually
+  // look like: their id, how many buttons and axes, and the live axis values.
+  // Pad layout differs between models and the browser remaps some of them, so
+  // "the D-pad does not move the menu" is not diagnosable from the outside.
+  var padsReported = false;
+  function reportPads() {
+    if (padsReported) return;
+    padsReported = true;
+    var gs = pads(), d = [];
+    for (var i = 0; i < gs.length; i++) {
+      if (!gs[i]) continue;
+      var down = [];
+      for (var b = 0; b < gs[i].buttons.length; b++) {
+        if (gs[i].buttons[b].pressed) down.push(b);
+      }
+      d.push({ id: gs[i].id, mapping: gs[i].mapping,
+               buttons: gs[i].buttons.length, axes: gs[i].axes.length,
+               axisVals: Array.prototype.slice.call(gs[i].axes).map(function (v) {
+                 return Math.round(v * 100) / 100;
+               }),
+               pressed: down });
+    }
+    try {
+      fetch("/api/shim-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ padReport: d, game: GAME })
+      });
+    } catch (e) {}
+  }
+
   function openPause() {
+    reportPads();
+    // Re-entry would reset the highlight to the first entry on every frame,
+    // which looks exactly like a menu that cannot be moved.
+    if (paused) return;
     // The games' own index page has no controls, so a pause menu there is an
     // empty box with nothing to select and no obvious way out. Better to do
     // nothing at all.
@@ -561,10 +619,15 @@
 
     if (paused && !leaving) {
       var btns = pauseItems();
+      // Up/down is the natural motion, but left/right and the shoulder buttons
+      // move the selection too. A menu is the one place where being unable to
+      // read one input means being unable to leave, so every plausible control
+      // is accepted rather than the correct one.
       var pdir = null;
       [p1, p2].forEach(function (p) {
         if (!p || pdir) return;
-        if (p.up) pdir = "up"; else if (p.down) pdir = "down";
+        if (p.up || p.left || p.l) pdir = "up";
+        else if (p.down || p.right || p.r) pdir = "down";
       });
       if (pdir && !navHeld) {
         pauseIdx = pdir === "up"
