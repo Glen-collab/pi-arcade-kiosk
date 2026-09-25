@@ -199,17 +199,27 @@
   // screen. Light Racer's end-of-match panel is <div class="overlay" id="over">
   // — checking only #setup and #rules left REMATCH and MENU unreachable,
   // because the shim stayed in key mode and nothing was clicking them.
+  // Visibility by measured box, NOT offsetParent. These panels are
+  // .modal{position:fixed}, and offsetParent is null for every fixed-position
+  // element whether it is visible or not — so an offsetParent test reported
+  // the setup screen as absent and the board cursor was drawn over the top
+  // of the menu.
+  function shown(el) {
+    if (!el || el.hidden) return false;
+    var r = el.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) return false;
+    var st = getComputedStyle(el);
+    return st.display !== "none" && st.visibility !== "hidden" && st.opacity !== "0";
+  }
   function setupVisible() {
     var ids = ["#setup", "#rules", "#over"];
     for (var i = 0; i < ids.length; i++) {
-      var el = document.querySelector(ids[i]);
-      if (el && !el.hidden && el.offsetParent !== null) return true;
+      if (shown(document.querySelector(ids[i]))) return true;
     }
     // Catch-all for the games that name their panels differently.
     var panels = document.querySelectorAll(".overlay, .modal");
     for (var j = 0; j < panels.length; j++) {
-      var q = panels[j];
-      if (!q.hidden && q.offsetParent !== null && q.querySelector("button")) return true;
+      if (shown(panels[j]) && panels[j].querySelector("button")) return true;
     }
     return false;
   }
@@ -239,6 +249,7 @@
       if (el.disabled) continue;
       var r = el.getBoundingClientRect();
       if (r.width < 4 || r.height < 4) continue;                 // hidden
+      if (!shown(el)) continue;
       if (r.bottom < 0 || r.top > window.innerHeight) continue;  // off-screen
       if (el.closest && el.closest(".pad")) continue;            // touch-only
       out.push({ el: el, r: r, cx: r.left + r.width / 2, cy: r.top + r.height / 2 });

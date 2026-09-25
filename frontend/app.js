@@ -79,6 +79,11 @@ function makeTile(game, opts = {}) {
     const label = { "split-screen": "SPLIT VIEW", "single-player": "1 PLAYER" }[game.seating];
     if (label) seat = `<span class="tile-seat seat-${game.seating}">${label}</span>`;
   }
+  // Identity on the element so focus can be restored after a re-render.
+  // A bare index cannot survive one: MOST PLAYED gaining a row shifts every
+  // grid tile along by one.
+  tile.dataset.rom = game.rom || "";
+  tile.dataset.sys = game.system || "";
   tile.innerHTML = `${rank}${plays}${seat}<div class="tile-title">${escapeHtml(game.title)}</div>`;
   tile.addEventListener("click", () => launch(game));
   return tile;
@@ -166,6 +171,15 @@ async function launch(game) {
         renderTop10();
         renderAll(search.value.trim());
         rebuildTileList();
+        // Re-find the tile we launched. Updating the play count can push this
+        // game into MOST PLAYED, and that new row shifts every grid tile along
+        // by one — leaving focusIdx pointing at the previous game. The launch
+        // has already gone, so the wrong game appears selected while the right
+        // one loads, which is just confusing.
+        const back = tiles.findIndex(t =>
+          t.dataset.rom === game.rom && t.dataset.sys === game.system);
+        if (back >= 0) focusIdx = back;
+        applyFocus();
       }
     } else {
       status.textContent = `ERROR: ${data.error || "launch failed"}`;
