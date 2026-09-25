@@ -272,7 +272,10 @@ def launch_table():
 
 @app.route("/api/exit-table", methods=["POST"])
 def exit_table():
-    _switch_kiosk("http://localhost:8088/?table=1", "normal")
+    # Back to the table-arcade list specifically. Dropping the player into the
+    # full 1,268-game library after they exit one of these is disorienting —
+    # they were somewhere, and should come back to it.
+    _switch_kiosk("http://localhost:8088/?table=1&system=table", "normal")
     return jsonify({"ok": True})
 
 

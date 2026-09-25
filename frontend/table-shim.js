@@ -281,6 +281,11 @@
       if (along <= 2) continue;                       // wrong side
       var across = (dir === "left" || dir === "right") ? Math.abs(dy) : Math.abs(dx);
       var score = along + across * 3;                 // prefer straight ahead
+      // Sideways should stay inside the row of choices you are on. Without
+      // this, moving right from 2 PLAYER TABLE drops into the group below,
+      // because that button is physically nearer than the wide one alongside.
+      if ((dir === "left" || dir === "right") &&
+          list[i].el.parentElement !== cur.el.parentElement) score += 2000;
       if (score < bestScore) { bestScore = score; best = i; }
     }
     if (best >= 0) navIdx = best;
@@ -354,6 +359,11 @@
       var c = items[i].cloneNode(true);       // keeps the game's own classes
       c.removeAttribute("id");
       c.removeAttribute("href");              // never navigate from a clone
+      // cloneNode copies inline styles, and the originals are display:none
+      // while play is running — without this every redraw produced an
+      // invisible row, so the highlighted entry vanished as you moved off it.
+      c.style.display = "";
+      c.style.visibility = "";
       c.className = items[i].className + " pz-item" + (i === pauseIdx ? " sel" : "");
       box.appendChild(c);
     }
@@ -364,6 +374,11 @@
   }
 
   function openPause() {
+    // The games' own index page has no controls, so a pause menu there is an
+    // empty box with nothing to select and no obvious way out. Better to do
+    // nothing at all.
+    hideControls(false);
+    if (!controlEls().length) { hideControls(true); return; }
     ensurePauseCss();
     if (!pauseEl) {
       pauseEl = document.createElement("div");
@@ -395,6 +410,25 @@
     if (pauseEl) pauseEl.hidden = true;
     hideControls(true);         // stay hidden during play
     if (resumeGame && !IS_BOARD) { setKey("KeyP", true); setKey("KeyP", false); }
+  }
+
+  // The games' MENU link points at their own index.html. On this cabinet the
+  // picker is the menu, and that page has no controller support of its own —
+  // landing on it is a dead end. Intercept it wherever it is clicked from.
+  document.addEventListener("click", function (e) {
+    var a = e.target && e.target.closest ? e.target.closest("a.menuLink") : null;
+    if (!a) return;
+    e.preventDefault();
+    e.stopPropagation();
+    backToPicker();
+  }, true);
+
+  function backToPicker() {
+    if (leaving) return;
+    leaving = true;
+    releaseAll();
+    if (pauseEl) pauseEl.hidden = true;
+    fetch("/api/exit-table", { method: "POST" })["catch"](function () {});
   }
 
   // Keep the row hidden from the moment play starts, and let it come back on
@@ -478,8 +512,7 @@
             // The games' MENU is a link to their own index. On this cabinet
             // the picker is the menu, so send it there instead.
             if (target.tagName === "A" || /MENU/i.test(target.textContent || "")) {
-              leaving = true;
-              fetch("/api/exit-table", { method: "POST" })["catch"](function () {});
+              backToPicker();
             } else {
               target.click();
             }
