@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Controller test</title>
+<style>
+  /* Sized to be read from across a cabinet, not from a desk chair. */
+  html, body { margin: 0; height: 100%; background: #0a0a14; color: #d6dcff;
+               font-family: monospace; overflow: hidden; }
+  #wrap { padding: 18px 26px; height: 100%; box-sizing: border-box;
+          display: flex; flex-direction: column; gap: 10px; }
+  h1 { margin: 0; font-size: 26px; color: #f5d020; letter-spacing: .1em; }
+  .hint { font-size: 17px; color: #6c74a8; }
+  .pad { border: 2px solid #2a3060; border-radius: 8px; padding: 10px 14px; }
+  .pad h2 { margin: 0 0 6px; font-size: 18px; color: #8fd0ff; }
+  .now { font-size: 46px; font-weight: bold; color: #3fd07a; min-height: 56px;
+         letter-spacing: .06em; }
+  .axes { font-size: 19px; color: #9aa4d8; }
+  #log { flex: 1; overflow: hidden; font-size: 21px; line-height: 1.5;
+         border-top: 2px solid #2a3060; padding-top: 8px; }
+  #log div:first-child { color: #ffd07a; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <h1>CONTROLLER TEST</h1>
+  <div class="hint">Press one control at a time. Each press is recorded.
+    Select + Start together returns to the arcade.</div>
+  <div id="pads"></div>
+  <div id="log"></div>
+</div>
+<script>
+// Reports what the hardware actually says, with no interpretation. The button
+// numbering a pad presents is not something that can be assumed -- the SNES
+// clones on this cabinet expose 13 buttons and no 13/14/15, and an arcade
+// encoder will present something different again.
+(function () {
+  var padsEl = document.getElementById("pads");
+  var logEl = document.getElementById("log");
+  var prev = {};      // pad index -> {buttons:[], axes:[]}
+  var lines = [];
+
+  function post(body) {
+    try {
+      fetch("/api/shim-log", { method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body) });
+    } catch (e) {}
+  }
+
+  function note(text, detail) {
+    lines.unshift(text);
+    if (lines.length > 14) lines.pop();
+    logEl.innerHTML = "";
+    lines.forEach(function (l) {
+      var d = document.createElement("div");
+      d.textContent = l;
+      logEl.appendChild(d);
+    });
+    post(detail);
+  }
+
+  function live() {
+    var gs = navigator.getGamepads ? navigator.getGamepads() : [];
+    var html = "";
+    var any = false;
+    for (var i = 0; i < gs.length; i++) {
+      var gp = gs[i];
+      if (!gp || !gp.connected) continue;
+      any = true;
+      if (!prev[i]) prev[i] = { buttons: [], axes: [] };
+      var p = prev[i];
+
+      var down = [];
+      for (var b = 0; b < gp.buttons.length; b++) {
+        var on = gp.buttons[b].pressed;
+        if (on) down.push(b);
+        if (on && !p.buttons[b]) {
+          note("PAD " + i + "   BUTTON " + b,
+               { padTest: "button", pad: i, index: b, id: gp.id });
+        }
+        p.buttons[b] = on;
+      }
+
+      var axTxt = [];
+      for (var a = 0; a < gp.axes.length; a++) {
+        var v = Math.round(gp.axes[a] * 100) / 100;
+        axTxt.push(a + ":" + v.toFixed(2));
+        var wasOff = Math.abs(p.axes[a] || 0) < 0.5;
+        if (Math.abs(v) > 0.5 && wasOff) {
+          note("PAD " + i + "   AXIS " + a + " -> " + (v > 0 ? "+" : "-"),
+               { padTest: "axis", pad: i, axis: a, value: v, id: gp.id });
+        }
+        p.axes[a] = v;
+      }
+
+      html += '<div class="pad"><h2>PAD ' + i + " &middot; " + gp.id +
+              " &middot; " + gp.buttons.length + " buttons, " +
+              gp.axes.length + " axes</h2>" +
+              '<div class="now">' + (down.length ? "BTN " + down.join("  ") : "&nbsp;") +
+              '</div><div class="axes">' + axTxt.join("   ") + "</div></div>";
+
+      // Select + Start is the cabinet's standard way out of anything.
+      if (gp.buttons[8] && gp.buttons[8].pressed &&
+          gp.buttons[9] && gp.buttons[9].pressed) {
+        fetch("/api/exit-table", { method: "POST" })["catch"](function () {});
+      }
+    }
+    padsEl.innerHTML = any ? html :
+      '<div class="pad"><h2>NO PADS SEEN</h2>' +
+      '<div class="axes">Press any button — a pad stays invisible to the ' +
+      'browser until it sends something.</div></div>';
+    requestAnimationFrame(live);
+  }
+  requestAnimationFrame(live);
+})();
+</script>
+</body>
+</html>
