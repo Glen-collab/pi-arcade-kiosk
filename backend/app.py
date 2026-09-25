@@ -238,13 +238,40 @@ def table_arcade(sub="index.html"):
             html = html.replace("</body>", tag + "</body>", 1)
         else:
             html = html + tag
-        return Response(html, mimetype="text/html")
+        return Response(html, mimetype="text/html", headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+        })
     return send_from_directory(TABLE_DIR, sub)
+
+
+@app.route("/api/shim-log", methods=["POST"])
+def shim_log():
+    """Let the injected shim report what it can actually see in the page.
+
+    Several fixes in a row were made by reasoning about the DOM from the
+    outside and did not work. This is a window in: the shim posts what it
+    found, and it shows up in journalctl.
+    """
+    d = request.get_json(silent=True) or {}
+    app.logger.warning("SHIM %s", json.dumps(d)[:500])
+    print("SHIM " + json.dumps(d)[:500], flush=True)
+    return jsonify({"ok": True})
 
 
 @app.route("/table-shim.js")
 def table_shim():
-    return send_from_directory(FRONTEND_DIR, "table-shim.js")
+    """Served no-cache, deliberately.
+
+    Chromium caches this aggressively, and the cabinet's browser only reloads
+    when the kiosk respawns — so a shim change could sit deployed on disk while
+    the running page kept using the old copy. That makes fixes look like they
+    did not work, which is a far worse problem than re-fetching 10KB.
+    """
+    resp = send_from_directory(FRONTEND_DIR, "table-shim.js")
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    return resp
 
 
 @app.route("/api/launch-table", methods=["POST"])

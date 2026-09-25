@@ -234,6 +234,24 @@
   }
   window.addEventListener("load", function () { setTimeout(hideTouchControls, 100); });
 
+  // Report what the shim can see, so failures can be diagnosed from the
+  // outside instead of guessed at.
+  setTimeout(function () {
+    var c = document.querySelector(".controls");
+    fetch("/api/shim-log", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        game: GAME,
+        controlsFound: !!c,
+        controlsDisplay: c ? (c.style.display || getComputedStyle(c).display) : null,
+        controlsCount: c ? c.querySelectorAll("button,a").length : 0,
+        pads: (navigator.getGamepads ? navigator.getGamepads() : []).length,
+        setupVisible: setupVisible(),
+        ver: "diag1"
+      })
+    })["catch"](function () {});
+  }, 3000);
+
 
   // ---- menu navigation ----------------------------------------------------
   // Setup screens are real <button> elements, so a controller should move
@@ -425,6 +443,8 @@
     // The games' own index page has no controls, so a pause menu there is an
     // empty box with nothing to select and no obvious way out. Better to do
     // nothing at all.
+    // Briefly un-hide so the clones inherit real computed styling, then hide
+    // again before anything is painted.
     hideControls(false);
     if (!controlEls().length) { hideControls(true); return; }
     ensurePauseCss();
@@ -443,7 +463,6 @@
       document.getElementById("pz-box").style.color = cs.color;
       document.getElementById("pz-box").style.fontFamily = cs.fontFamily;
     }
-    hideControls(false);        // clones must measure against real styles
     paused = true;
     pauseView = "main";
     pauseIdx = 0;
@@ -482,9 +501,13 @@
 
   // Keep the row hidden from the moment play starts, and let it come back on
   // setup screens where the buttons are the whole interface.
+  // Hidden for the whole session, not only during play. Tying this to "is a
+  // menu showing" meant the row came back on every GAME OVER — which is a menu
+  // state — and that is exactly the clutter it was hidden to remove. Nothing
+  // is lost: the setup screens live in their own #setup modal, so PRESS START
+  // and friends are untouched, and everything in .controls is on START.
   setInterval(function () {
-    if (paused) return;
-    hideControls(!setupVisible());
+    if (!paused) hideControls(true);
   }, 400);
 
   var exitHeld = 0, leaving = false, banner = null;
