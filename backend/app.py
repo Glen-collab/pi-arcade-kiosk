@@ -289,7 +289,8 @@ def launch_table():
     """
     data = request.get_json(silent=True) or {}
     rom = data.get("rom", "")
-    if "/" in rom or "\\" in rom or ".." in rom or not rom.endswith(".html"):
+    # One folder level is allowed ("pinball/index.html"); traversal is not.
+    if "\\" in rom or ".." in rom or rom.startswith("/") or not rom.endswith(".html")             or rom.count("/") > 1:
         return jsonify({"ok": False, "error": "invalid game"}), 400
     if not os.path.isfile(os.path.join(TABLE_DIR, "games", rom)):
         return jsonify({"ok": False, "error": "game not found"}), 404
@@ -321,15 +322,22 @@ def table_games():
         return []
     out = []
     for fn in sorted(os.listdir(gdir)):
-        if not fn.endswith(".html"):
+        path = os.path.join(gdir, fn)
+        # Single-file games sit directly in games/. Bigger ones get a folder
+        # with an index.html, so a game can grow modules without being forced
+        # into one enormous file.
+        if fn.endswith(".html"):
+            slug, rom = fn[:-5], fn
+        elif os.path.isdir(path) and os.path.isfile(os.path.join(path, "index.html")):
+            slug, rom = fn, fn + "/index.html"
+        else:
             continue
-        slug = fn[:-5]
         out.append({
             "id": "table-" + slug,
             "title": slug.replace("-", " ").title(),
             "system": "table",
-            "rom": fn,
-            "url": "/table/games/" + fn,
+            "rom": rom,
+            "url": "/table/games/" + rom,
             "description": "",
             "plays": 0,
             "seating": "shared",
