@@ -288,8 +288,30 @@
   // mouse pointer around. The pointer is kept only for the board games, where
   // there is genuinely nothing to focus.
   var navIdx = 0;
+  // The panel currently on top, so focus stays inside it.
+  //
+  // Rules opens over setup, and setup opens over the game-over panel, so the
+  // order here is the stacking order and not the order they appear in the
+  // markup. Without this the focus list was built from the whole document and
+  // included the game-over panel sitting behind the setup screen: the
+  // selection scrolled down onto NEW MATCH and MENU, which were not on top,
+  // could not be clicked, and should never have been offered.
+  function activePanel() {
+    var ids = ["#rules", "#setup", "#over"];
+    for (var i = 0; i < ids.length; i++) {
+      var el = document.querySelector(ids[i]);
+      if (shown(el)) return el;
+    }
+    var panels = document.querySelectorAll(".overlay, .modal");
+    for (var j = 0; j < panels.length; j++) {
+      if (shown(panels[j]) && panels[j].querySelector("button")) return panels[j];
+    }
+    return null;
+  }
+
   function menuButtons() {
-    var all = document.querySelectorAll("button, a[href]");
+    var root = activePanel() || document;
+    var all = root.querySelectorAll("button, a[href]");
     var out = [];
     for (var i = 0; i < all.length; i++) {
       var el = all[i];
