@@ -468,6 +468,20 @@
     if (log) log.style.display = hide ? "none" : "";
     var link = document.querySelector("a.menuLink");
     if (link) link.style.display = hide ? "none" : "";
+
+    // The on-screen touch pads. A cabinet has a joystick and buttons, so
+    // these are dead weight occupying the bottom of the board — on Iron
+    // Treads they take a fifth of the playfield for controls nobody can
+    // reach under glass.
+    //
+    // Only the ones holding real touch controls: the games also use .pad
+    // purely for layout on their game-over panels, and hiding those would
+    // take REMATCH and MENU with them.
+    var pads = document.querySelectorAll(".pad, .pads");
+    for (var p = 0; p < pads.length; p++) {
+      if (!pads[p].querySelector("[data-hold]")) continue;
+      pads[p].style.display = hide ? "none" : "";
+    }
   }
 
   function drawPause(items) {
