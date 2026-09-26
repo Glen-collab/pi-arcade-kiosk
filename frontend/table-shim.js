@@ -368,6 +368,47 @@
   }
 
 
+  // A way out of a setup screen.
+  //
+  // Every game has a MENU link, but it lives in the .controls row, which is
+  // hidden for the whole session — so from a game's own menu there was no way
+  // back to the arcade at all without starting a game first and then pausing
+  // it. This puts one into whichever panel is showing, styled from the game's
+  // own buttons so it belongs there, and the focus list picks it up like any
+  // other entry because it carries no data-hold.
+  function ensureBackButton() {
+    var panel = activePanel();
+    var existing = document.getElementById("pz-back");
+    if (!panel || leaving) {
+      if (existing) existing.remove();
+      return;
+    }
+    if (existing && existing.parentElement === panel) return;
+    if (existing) existing.remove();
+    var model = document.querySelector(".controls button, .px");
+    var b = model ? model.cloneNode(false) : document.createElement("button");
+    b.id = "pz-back";
+    b.removeAttribute("data-act");
+    b.removeAttribute("data-hold");
+    b.textContent = "◀ TABLE ARCADE";
+    b.style.display = "block";
+    b.style.visibility = "";
+    b.style.marginTop = "14px";
+    b.addEventListener("click", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      backToPicker();
+    });
+    // Put it beside the game's own buttons rather than at the root of the
+    // panel. The panel is full width and the buttons sit in a narrower column
+    // inside it, so appending to the panel made a button that ran off both
+    // sides of the layout.
+    var host = panel.querySelector(".startBtn") || panel.querySelector(".px");
+    var parent = (host && host.parentElement) || panel;
+    parent.appendChild(b);
+  }
+  setInterval(ensureBackButton, 400);
+
   // ---- pause menu ---------------------------------------------------------
   // Every game keeps its controls in a permanent <div class="controls"> row
   // under the playfield, plus a MOVE LOG. That is a mouse layout: on the board
@@ -529,6 +570,28 @@
     } catch (e) {}
   }
 
+  // ?padcheck=1 reports what the shim did to this game's on-screen clutter.
+  // Eleven games is too many to confirm by eye, and a screenshot of a setup
+  // screen does not show what is behind it.
+  if (/[?&]padcheck=1/.test(location.search)) {
+    setTimeout(function () {
+      var pads = document.querySelectorAll(".pad, .pads");
+      var touch = 0, hidden = 0, layout = 0;
+      for (var i = 0; i < pads.length; i++) {
+        if (pads[i].querySelector("[data-hold]")) {
+          touch++;
+          if (getComputedStyle(pads[i]).display === "none") hidden++;
+        } else layout++;
+      }
+      var row = document.querySelector(".controls");
+      fetch("/api/shim-log", { method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ padcheck: GAME, touchPads: touch,
+          touchPadsHidden: hidden, layoutPads: layout,
+          controlsHidden: !row || getComputedStyle(row).display === "none" }) });
+    }, 1800);
+  }
+
   var padsReported = false;
   function reportPads() {
     if (padsReported) return;
@@ -618,6 +681,11 @@
     releaseAll();
     if (pauseEl) pauseEl.hidden = true;
     fetch("/api/exit-table", { method: "POST" })["catch"](function () {});
+    // On the cabinet that endpoint relaunches the browser at the picker, and
+    // resets the display rotation on the way — which is why it is asked first
+    // rather than simply navigating. On a desktop nothing is listening for it,
+    // so fall back to the picker directly once it is clear nobody answered.
+    setTimeout(function () { if (!document.hidden) location.href = "/"; }, 1500);
   }
 
   // Keep the row hidden from the moment play starts, and let it come back on
