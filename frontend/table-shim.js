@@ -56,10 +56,14 @@
       2: { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight", prim: "Enter" }
     },
     "banana-barrage": {
+      // Aim needs both directions, and "sec" is one button — Y and X both
+      // produce it, so aiming only ever went one way. Bound separately now.
+      // Walk on the D-pad, angle on up/down, power on the shoulders, throw on
+      // A or B, aim on Y and X.
       1: { left: "KeyA", right: "KeyD", up: "KeyW", down: "KeyS",
-           prim: "Space", sec: "KeyQ", l: "KeyR", r: "KeyF" },
+           prim: "Space", y: "KeyQ", x: "KeyE", l: "KeyR", r: "KeyF" },
       2: { left: "ArrowLeft", right: "ArrowRight", up: "ArrowUp", down: "ArrowDown",
-           prim: "Enter", sec: "Comma", l: "PageUp", r: "PageDown" }
+           prim: "Enter", y: "Comma", x: "Period", l: "PageUp", r: "PageDown" }
     }
   };
 
@@ -138,7 +142,9 @@
       left:   (ax[0] || 0) < -DEAD || pressed(14) || !!hat.left,
       right:  (ax[0] || 0) >  DEAD || pressed(15) || !!hat.right,
       prim:   pressed(2) || pressed(1),   // B or A
-      sec:    pressed(3) || pressed(0),   // Y or X
+      sec:    pressed(3) || pressed(0),   // Y or X, for games wanting one extra
+      y:      pressed(3),                 // separately, for games wanting two
+      x:      pressed(0),
       l:      pressed(4),
       r:      pressed(5),
       select: pressed(8),
@@ -292,7 +298,14 @@
       if (r.width < 4 || r.height < 4) continue;                 // hidden
       if (!shown(el)) continue;
       if (r.bottom < 0 || r.top > window.innerHeight) continue;  // off-screen
-      if (el.closest && el.closest(".pad")) continue;            // touch-only
+      // Skip the on-screen touch controls, but NOT everything inside a .pad.
+      // The games reuse .pad purely for layout on their game-over panels, so
+      // excluding the whole container hid REMATCH and MENU from the focus
+      // list — the shim entered menu mode, found nothing selectable, and the
+      // panel could not be answered on a pad at all. Every game marks a real
+      // touch control with data-hold and a menu action with data-act, so key
+      // on that instead of on the container.
+      if (el.closest && el.closest(".pad") && el.hasAttribute("data-hold")) continue;
       out.push({ el: el, r: r, cx: r.left + r.width / 2, cy: r.top + r.height / 2 });
     }
     return out;
@@ -596,11 +609,15 @@
   }
 
   var prevPrim = [false, false];
+  var primLock = [false, false];
   var navHeld = false;
 
   function tick() {
     var gs = pads();
     var p1 = readPad(gs[0]), p2 = readPad(gs[1]);
+    // Clear the menu carry-over the moment the button is genuinely up.
+    if (!p1 || !p1.prim) primLock[0] = false;
+    if (!p2 || !p2.prim) primLock[1] = false;
 
     // Exit is checked first so it always works, including mid-game with keys
     // held. On a cabinet with no keyboard, a game you cannot leave is a brick.
@@ -707,7 +724,10 @@
           for (var q = 0; q < 2; q++) {
             var pq = both1[q];
             if (!pq) continue;
-            if (pq.prim && !prevPrim[q] && list[navIdx]) list[navIdx].el.click();
+            if (pq.prim && !prevPrim[q] && list[navIdx]) {
+              list[navIdx].el.click();
+              primLock[q] = true;
+            }
             prevPrim[q] = pq.prim;
           }
         }
@@ -744,8 +764,15 @@
             setKey(m.down, pp.down);
             setKey(m.left, pp.left);
             setKey(m.right, pp.right);
-            setKey(m.prim, pp.prim);
+            // The button that dismissed the setup screen is usually still
+            // held when play begins, and it is the same button the game reads
+            // as its action — so the banana was thrown the instant the game
+            // started. Held over from the menu, it counts as released until
+            // the player actually lets go.
+            setKey(m.prim, pp.prim && !primLock[j]);
             setKey(m.sec, pp.sec);
+            setKey(m.y, pp.y);
+            setKey(m.x, pp.x);
             setKey(m.l, pp.l);
             setKey(m.r, pp.r);
           }
