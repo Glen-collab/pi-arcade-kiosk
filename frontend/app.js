@@ -838,15 +838,38 @@ async function isPlaying() {
   } catch { return false; }
 }
 
+// A demo nobody touches rotates to the next one, like a real cabinet. Without
+// this a demo ran until someone quit it — Mario/Duck Hunt sat on its title
+// screen for 35 hours and looked exactly like a frozen machine.
+const DEMO_ROTATE_MS = 120000;
+let demoStartedAt = 0;   // 0 = whatever is running is not (or no longer) a demo
+
+async function readStatus() {
+  try { return await (await fetch("/api/status")).json(); }
+  catch { return { playing: false, pad_idle_s: null }; }
+}
+
 setInterval(async () => {
-  const playing = await isPlaying();
+  const st = await readStatus();
+  const playing = !!st.playing;
   // User just exited a game (or attract demo) — start a fresh idle
   // countdown instead of immediately blasting the next demo.
-  if (wasPlaying && !playing) lastInput = Date.now();
+  if (wasPlaying && !playing) { lastInput = Date.now(); demoStartedAt = 0; }
   wasPlaying = playing;
-  if (playing) return;
-
-  if (Date.now() - lastInput < IDLE_ATTRACT_MS) return;
+  if (playing) {
+    if (!demoStartedAt) return;
+    const ran = Date.now() - demoStartedAt;
+    // Someone picked up a pad during the demo: it is their game now. The
+    // backend reads the pads directly, because this page cannot see them while
+    // RetroArch is on top. If it cannot read them at all (null), never cut a
+    // game off on a guess.
+    if (st.pad_idle_s == null || st.pad_idle_s * 1000 < ran - 3000) {
+      demoStartedAt = 0;
+      return;
+    }
+    if (ran < DEMO_ROTATE_MS) return;
+    // fall through: launch the next demo straight over this one
+  } else if (Date.now() - lastInput < IDLE_ATTRACT_MS) return;
 
   const sys = ATTRACT_DEMOS[systemFilter] ? systemFilter : "nes";
   const pool = ATTRACT_DEMOS[sys] || [];
@@ -854,6 +877,8 @@ setInterval(async () => {
   const pick = pool[attractIdx % pool.length];
   attractIdx++;
   status.textContent = `DEMO MODE - F4 OR ENTER TO PLAY`;
+  demoStartedAt = Date.now();
+  wasPlaying = true;   // the old demo stopping is not someone quitting
   try {
     await fetch("/api/launch", {
       method: "POST",

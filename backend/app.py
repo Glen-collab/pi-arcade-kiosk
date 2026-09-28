@@ -12,12 +12,16 @@
   the device is no longer in arcade mode) and execs the local
   switch-to-workouts.sh.
 """
+import glob
 import json
 import os
 import re
+import select
+import struct
 import subprocess
+import time
 import urllib.request
-from threading import Lock
+from threading import Lock, Thread
 
 from flask import Flask, Response, jsonify, request, send_from_directory
 
@@ -58,6 +62,56 @@ SWITCH_TO_WORKOUTS = os.environ.get(
 
 app = Flask(__name__, static_folder=FRONTEND_DIR, static_url_path="")
 current_proc = None
+
+# When a pad was last touched, read straight off /dev/input/js*. The picker
+# cannot see this itself: once RetroArch is fullscreen over Chromium, the page
+# stops getting reliable gamepad data. It is what tells an attract demo nobody
+# is watching (safe to rotate) from one somebody picked up and is now playing
+# (must be left alone). The joystick interface allows several readers, so
+# RetroArch is unaffected.
+last_pad_input = 0.0
+pad_watch_ok = False
+
+
+def _watch_pads():
+    global last_pad_input, pad_watch_ok
+    fds = {}
+    next_scan = 0.0
+    while True:
+        now = time.monotonic()
+        if now >= next_scan:            # pick up pads plugged in or paired later
+            next_scan = now + 5
+            for path in glob.glob("/dev/input/js*"):
+                if path not in fds:
+                    try:
+                        fds[path] = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+                    except OSError:
+                        pass
+            pad_watch_ok = bool(fds)
+        if not fds:
+            time.sleep(1)
+            continue
+        ready, _, _ = select.select(list(fds.values()), [], [], 1.0)
+        for fd in ready:
+            try:
+                data = os.read(fd, 8 * 64)
+            except OSError:             # unplugged: drop it, the rescan re-adds
+                for p, f in list(fds.items()):
+                    if f == fd:
+                        os.close(f)
+                        del fds[p]
+                continue
+            for off in range(0, len(data) - 7, 8):
+                _t, value, etype, _num = struct.unpack_from("<IhBB", data, off)
+                if etype & 0x80:        # synthetic state dump on open, not a press
+                    continue
+                if etype == 1 and value:                    # button down
+                    last_pad_input = time.monotonic()
+                elif etype == 2 and abs(value) > 16000:     # stick/D-pad past half
+                    last_pad_input = time.monotonic()
+
+
+Thread(target=_watch_pads, daemon=True).start()
 plays_lock = Lock()
 # Serialises the whole launch path. Without it, concurrent POSTs each read
 # current_proc before any of them writes it, so every request believes nothing
@@ -439,6 +493,16 @@ def launch():
         # Belt and braces: an instance that escaped tracking — a service
         # restart mid-game, say — would otherwise linger forever.
         subprocess.run(["pkill", "-x", "retroarch"], capture_output=True)
+        # A hung RetroArch ignores SIGTERM (seen 2026-09-28: a demo sat frozen
+        # for 35 hours and needed SIGKILL). Launching over the top of one would
+        # leave two emulators fighting for the display.
+        for _ in range(20):
+            if subprocess.run(["pgrep", "-x", "retroarch"],
+                              capture_output=True).returncode != 0:
+                break
+            time.sleep(0.1)
+        else:
+            subprocess.run(["pkill", "-KILL", "-x", "retroarch"], capture_output=True)
 
         overrides = load_overrides()
         game_id = derive_id(rom, overrides.get(rom, {}))
@@ -471,6 +535,9 @@ def status_endpoint():
     # so here rather than hardcoding per-install, so one codebase serves both.
     return jsonify({
         "playing": playing,
+        # Seconds since any pad was touched, or null if no pad can be read.
+        "pad_idle_s": (round(time.monotonic() - last_pad_input, 1)
+                       if pad_watch_ok else None),
         "workouts_available": os.path.isfile(SWITCH_TO_WORKOUTS),
         "has_table": bool(table_games()),
         "systems": sorted(
