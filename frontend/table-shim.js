@@ -131,11 +131,27 @@
     return null;
   }
 
+  // The USB NES pads (081f:e401) number their buttons differently from the
+  // SNES clones: A=0 B=1 Select=8 Start=9, D-pad on axes 0/1 (read off one on
+  // Windows 2026-09-28). There is no X or Y, so A and B are the whole game.
+  function isNesPad(gp) { return /081f.*e401/i.test(gp.id || ""); }
+
   function readPad(gp) {
     if (!gp) return null;
     var b = gp.buttons, ax = gp.axes;
     function pressed(i) { return !!(b[i] && b[i].pressed); }
     var hat = hatDir(ax) || {};
+    if (isNesPad(gp)) {
+      return {
+        up:    (ax[1] || 0) < -DEAD, down:  (ax[1] || 0) > DEAD,
+        left:  (ax[0] || 0) < -DEAD, right: (ax[0] || 0) > DEAD,
+        prim:  pressed(0) || pressed(1),   // A or B, as on the SNES pads
+        sec:   pressed(0) && pressed(1),   // the third button is A+B together
+        y: false, x: false, l: false, r: false,
+        select: pressed(8),
+        start:  pressed(9)
+      };
+    }
     return {
       up:     (ax[1] || 0) < -DEAD || pressed(12) || !!hat.up,
       down:   (ax[1] || 0) >  DEAD || pressed(13) || !!hat.down,
