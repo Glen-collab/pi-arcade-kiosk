@@ -132,7 +132,7 @@
   }
 
   // The USB NES pads (081f:e401) number their buttons differently from the
-  // SNES clones: A=0 B=1 Select=8 Start=9, D-pad on axes 0/1 (read off one on
+  // SNES clones: A=1 B=0 Select=8 Start=9, D-pad on axes 0/1 (read off one on
   // Windows 2026-09-28). There is no X or Y, so A and B are the whole game.
   function isNesPad(gp) { return /081f.*e401/i.test(gp.id || ""); }
 
