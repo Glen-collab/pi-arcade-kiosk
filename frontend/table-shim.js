@@ -152,6 +152,37 @@
     };
   }
 
+  // A game that reads the pads itself (Word Forge) says so with
+  // <meta name="table-shim" content="native">. Driving it as well meant every
+  // press landed twice and START opened two pause menus on top of each other.
+  // Such a game gets the exit combo and nothing else — it has to stay, since a
+  // game you cannot leave is a brick on a cabinet with no keyboard.
+  var nativeMeta = document.querySelector('meta[name="table-shim"]');
+  if (nativeMeta && nativeMeta.content === "native") {
+    var nExitHeld = 0, nLeaving = false;
+    (function nativeTick() {
+      var gs = pads(), want = false;
+      for (var i = 0; i < 2; i++) {
+        var p = readPad(gs[i]);
+        if (p && p.select && p.start) want = true;
+      }
+      if (want && !nLeaving) {
+        if (!nExitHeld) nExitHeld = Date.now();
+        if (Date.now() - nExitHeld < 1200) showBanner("BACK TO ARCADE...  RELEASE TO CANCEL");
+        else {
+          nLeaving = true;
+          showBanner("RETURNING TO ARCADE...");
+          fetch("/api/exit-table", { method: "POST" })["catch"](function () {});
+        }
+      } else if (!want) {
+        nExitHeld = 0;
+        if (banner) banner.hidden = true;
+      }
+      requestAnimationFrame(nativeTick);
+    })();
+    return;
+  }
+
   // Virtual cursor. Board games read coordinates off a canvas, so hopping focus
   // between elements cannot work — there are no elements to focus. A cursor
   // dispatching real pointer events is the only input those games accept.
