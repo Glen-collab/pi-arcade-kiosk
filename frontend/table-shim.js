@@ -371,7 +371,9 @@
       var r = el.getBoundingClientRect();
       if (r.width < 4 || r.height < 4) continue;                 // hidden
       if (!shown(el)) continue;
-      if (r.bottom < 0 || r.top > window.innerHeight) continue;  // off-screen
+      // Off-screen buttons stay in: a long rules page puts BACK TO GAME below
+      // the fold, and skipping it left six games' rules with nothing to press
+      // (2026-09-28). Focusing one scrolls it into view.
       // Skip the on-screen touch controls, but NOT everything inside a .pad.
       // The games reuse .pad purely for layout on their game-over panels, so
       // excluding the whole container hid REMATCH and MENU from the focus
@@ -442,7 +444,7 @@
     b.id = "pz-back";
     b.removeAttribute("data-act");
     b.removeAttribute("data-hold");
-    b.textContent = "◀ TABLE ARCADE";
+    b.textContent = "◀ EXIT TO ARCADE";   // same words as the pause menu
     b.style.display = "block";
     b.style.visibility = "";
     b.style.marginTop = "14px";
@@ -504,18 +506,26 @@
       }
       return rows;
     }
-    var out = [{ label: "▸ SWITCH TABLE GAME", act: "switch" }];
-    var ctl = controlEls();
+    // One layout for every game, whatever its own control row calls things
+    // or whatever order it puts them in (Glen, 2026-09-28: "make it feel like
+    // a real arcade"). Built from the game's buttons by id, which all eleven
+    // share: bNew, bPause, bTable, bSound, plus a RULES button and MENU link.
+    var out = [{ label: "RESUME", act: "resume" }];
+    var ctl = controlEls(), extras = [], rules = null;
     for (var j = 0; j < ctl.length; j++) {
-      var t = (ctl[j].textContent || "").trim();
-      // The game's own MENU means "their index", which this cabinet never
-      // wants. Relabel it as what it actually does here.
-      if (ctl[j].tagName === "A" || /^◀?\s*MENU$/i.test(t)) {
-        out.push({ label: "◀ EXIT TO ARCADE", act: "exit" });
-      } else {
-        out.push({ label: t, act: "click", el: ctl[j] });
-      }
+      var el = ctl[j], t = (el.textContent || "").trim();
+      if (el.tagName === "A" || /^◀?\s*MENU$/i.test(t)) continue;  // EXIT, below
+      if (el.id === "bPause") continue;         // a PAUSE entry inside PAUSED
+      if (el.id === "bNew") { out.push({ label: "NEW GAME", act: "new", el: el }); continue; }
+      if (/^(RULES|HOW TO PLAY)$/i.test(t)) { rules = el; continue; }
+      // Settings that flip (TABLE VIEW: ON, SOUND: OFF) stay in the menu so
+      // the new value shows; anything else acts on the game and resumes it.
+      extras.push({ label: t, act: /:/.test(t) ? "toggle" : "click", el: el });
     }
+    out = out.concat(extras);
+    if (rules) out.push({ label: "HOW TO PLAY", act: "rules", el: rules });
+    out.push({ label: "TABLE ARCADE ▸", act: "switch" });
+    out.push({ label: "◀ EXIT TO ARCADE", act: "exit" });
     return out;
   }
 
@@ -594,13 +604,16 @@
       // invisible row, so the highlighted entry vanished as you moved off it.
       c.style.display = "";
       c.style.visibility = "";
-      if (!src) c.textContent = items[i].label;
+      // Always our label: the clone brings the game's own wording otherwise
+      // (NEW MATCH, RULES), which is the inconsistency this menu removes.
+      c.textContent = items[i].label;
       c.className = (c.className || "") + " pz-item" + (i === pauseIdx ? " sel" : "");
       box.appendChild(c);
     }
     var h = document.createElement("div");
     h.id = "pz-hint";
-    h.textContent = "D-PAD move  ·  A select  ·  START resume";
+    h.textContent = pauseView === "games" ? "D-PAD move  ·  A play  ·  B back"
+                                         : "D-PAD move  ·  A select  ·  B or START resume";
     box.appendChild(h);
   }
 
@@ -764,7 +777,8 @@
     banner.hidden = false;
   }
 
-  var prevPrim = [false, false];
+  var prevPrim = [false, false], prevA = [false, false], prevB = [false, false];
+  var reopenAfterRules = false;
   var primLock = [false, false];
   var navHeld = false;
 
@@ -832,29 +846,79 @@
       for (var pk = 0; pk < 2; pk++) {
         var pv = pk === 0 ? p1 : p2;
         if (!pv) continue;
-        if (pv.prim && !prevPrim[pk]) {
-          var it = btns[pauseIdx];
-          prevPrim[pk] = pv.prim;
-          if (!it) continue;
-          logMenu("select", { idx: pauseIdx, act: it.act, label: it.label,
-                              items: btns.length, view: pauseView,
-                              hasEl: !!it.el, tableGames: tableList ? tableList.length : -1 });
-          if (it.act === "switch") { pauseView = "games"; pauseIdx = 0; drawPause(pauseItems()); continue; }
-          if (it.act === "back")   { pauseView = "main";  pauseIdx = 0; drawPause(pauseItems()); continue; }
-          if (it.act === "play") {
-            // Same origin, same rotation, same browser — just go there.
-            releaseAll();
-            location.href = "/table/games/" + it.rom;
-            continue;
-          }
-          closePause(false);
-          if (it.act === "exit") backToPicker();
-          else if (it.el) it.el.click();
-        }
+        var aEdge = pv.a && !prevA[pk], bEdge = pv.b && !pv.a && !prevB[pk];
+        prevA[pk] = pv.a; prevB[pk] = pv.b;
         prevPrim[pk] = pv.prim;
+        // B backs out: to the main list from the games list, else back to play.
+        if (bEdge) {
+          if (pauseView === "games") { pauseView = "main"; pauseIdx = 0; drawPause(pauseItems()); }
+          else { primLock[pk] = true; closePause(true); }
+          break;
+        }
+        if (!aEdge) continue;
+        var it = btns[pauseIdx];
+        if (!it) continue;
+        logMenu("select", { idx: pauseIdx, act: it.act, label: it.label,
+                            items: btns.length, view: pauseView,
+                            hasEl: !!it.el, tableGames: tableList ? tableList.length : -1 });
+        // The A that chose an entry is still down when play resumes; without
+        // the lock the game reads it as its first action.
+        primLock[pk] = true;
+        if (it.act === "switch") { pauseView = "games"; pauseIdx = 0; drawPause(pauseItems()); break; }
+        if (it.act === "back")   { pauseView = "main";  pauseIdx = 0; drawPause(pauseItems()); break; }
+        if (it.act === "play") {
+          // Same origin, same rotation, same browser — just go there.
+          releaseAll();
+          location.href = "/table/games/" + it.rom;
+          break;
+        }
+        if (it.act === "resume") { closePause(true); break; }
+        if (it.act === "exit")   { closePause(false); backToPicker(); break; }
+        if (it.act === "toggle") {
+          // Used to close the menu and leave the game paused underneath: a
+          // frozen board and no menu, which read as the table being stuck.
+          it.el.click();
+          drawPause(pauseItems());
+          break;
+        }
+        if (it.act === "rules") {
+          // The rules panel opens over the still-paused game; when it closes,
+          // the pause menu comes back rather than a frozen board.
+          closePause(false);
+          reopenAfterRules = true;
+          it.el.click();
+          break;
+        }
+        if (it.act === "click") { it.el.click(); closePause(true); break; }
+        // NEW GAME: the game's own button, which opens its setup screen.
+        closePause(false);
+        it.el.click();
+        break;
       }
       requestAnimationFrame(tick);
       return;
+    }
+
+    // Rules gone but another panel up (Sea Strike's hand-over screen): that
+    // panel is where the player is, so stay there and forget the reopen, or
+    // the menu would pop up later out of nowhere.
+    if (reopenAfterRules && !shown(document.querySelector("#rules")) && setupVisible()) {
+      reopenAfterRules = false;
+    }
+    if (reopenAfterRules && !leaving) {
+      if (!setupVisible()) {
+        // Straight back to the menu, without the KeyP that openPause() sends:
+        // the game is still paused from before, and another KeyP would
+        // unpause it behind the menu.
+        reopenAfterRules = false;
+        hideControls(false);
+        paused = true; pauseView = "main"; pauseIdx = 0;
+        drawPause(pauseItems());
+        hideControls(true);
+        pauseEl.hidden = false;
+        requestAnimationFrame(tick);
+        return;
+      }
     }
 
     if (!leaving) {
@@ -880,10 +944,22 @@
           for (var q = 0; q < 2; q++) {
             var pq = both1[q];
             if (!pq) continue;
-            if (pq.prim && !prevPrim[q] && list[navIdx]) {
+            // A selects. B backs out of a panel that has a way back (the rules'
+            // BACK TO GAME) and does nothing elsewhere, so a stray B on a setup
+            // screen cannot throw anyone out of the game.
+            if (pq.a && !prevA[q] && list[navIdx]) {
               list[navIdx].el.click();
               primLock[q] = true;
+            } else if (pq.b && !pq.a && !prevB[q]) {
+              for (var bk = 0; bk < list.length; bk++) {
+                if (/^(BACK TO GAME|BACK|CLOSE|DONE|GOT IT|OK)$/i.test((list[bk].el.textContent || "").trim())) {
+                  list[bk].el.click();
+                  primLock[q] = true;
+                  break;
+                }
+              }
             }
+            prevA[q] = pq.a; prevB[q] = pq.b;
             prevPrim[q] = pq.prim;
           }
         }
