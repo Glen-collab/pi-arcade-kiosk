@@ -600,7 +600,7 @@
     }
     var h = document.createElement("div");
     h.id = "pz-hint";
-    h.textContent = "D-PAD move  ·  B select  ·  START resume";
+    h.textContent = "D-PAD move  ·  A select  ·  START resume";
     box.appendChild(h);
   }
 
