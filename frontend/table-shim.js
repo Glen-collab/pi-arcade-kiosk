@@ -433,7 +433,10 @@
   function ensureBackButton() {
     var panel = activePanel();
     var existing = document.getElementById("pz-back");
-    if (!panel || leaving) {
+    // Start screens only (the panel with PRESS START). On Sea Strike's fleet
+    // placement it landed among the ships and became the line the cursor
+    // stopped on instead of READY; mid-game, EXIT is on the pause menu.
+    if (!panel || leaving || !panel.querySelector(".startBtn")) {
       if (existing) existing.remove();
       return;
     }
@@ -494,13 +497,22 @@
   }
 
   function pauseItems() {
+    var PB = window.PINBALL;
+    if (pauseView === "tables" && PB && PB.tables) {
+      var tr = [{ label: "◀ BACK", act: "back" }];
+      for (var ti = 0; ti < PB.tables.length; ti++) {
+        tr.push({ label: PB.tables[ti].name + (PB.tables[ti].id === PB.table ? " · PLAYING" : ""),
+                  act: "table", id: PB.tables[ti].id });
+      }
+      return tr;
+    }
     if (pauseView === "games") {
       var rows = [{ label: "◀ BACK", act: "back" }];
       var here = (location.pathname.match(/([^/]+\.html)$/) || [])[1];
       for (var i = 0; tableList && i < tableList.length; i++) {
         var g = tableList[i];
         rows.push({
-          label: (g.rom === here ? "▸ " : "  ") + g.title,
+          label: g.title.toUpperCase() + (g.rom === here ? " · PLAYING" : ""),
           act: "play", rom: g.rom
         });
       }
@@ -516,6 +528,8 @@
       var el = ctl[j], t = (el.textContent || "").trim();
       if (el.tagName === "A" || /^◀?\s*MENU$/i.test(t)) continue;  // EXIT, below
       if (el.id === "bPause") continue;         // a PAUSE entry inside PAUSED
+      // Pinball's bTable only steps to the NEXT table; CHOOSE TABLE replaces it.
+      if (el.id === "bTable" && PB && PB.tables) continue;
       if (el.id === "bNew") { out.push({ label: "NEW GAME", act: "new", el: el }); continue; }
       if (/^(RULES|HOW TO PLAY)$/i.test(t)) { rules = el; continue; }
       // Settings that flip (TABLE VIEW: ON, SOUND: OFF) stay in the menu so
@@ -523,6 +537,7 @@
       extras.push({ label: t, act: /:/.test(t) ? "toggle" : "click", el: el });
     }
     out = out.concat(extras);
+    if (PB && PB.tables) out.push({ label: "CHOOSE TABLE ▸", act: "tables" });
     if (rules) out.push({ label: "HOW TO PLAY", act: "rules", el: rules });
     out.push({ label: "TABLE ARCADE ▸", act: "switch" });
     out.push({ label: "◀ EXIT TO ARCADE", act: "exit" });
@@ -536,15 +551,23 @@
     if (document.getElementById("pz-css")) return;
     var st = document.createElement("style");
     st.id = "pz-css";
+    // Its own look, not copies of each game's buttons: the copies brought
+    // every game's own size, padding and colour, so the menu was pink in one
+    // game, tiny in another and taller than the screen in a third. Modelled on
+    // pinball's (bold monospace, bright), sized so every row fits (Glen,
+    // 2026-09-29).
     st.textContent =
       "#pz-wrap{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;" +
       "justify-content:center;background:rgba(4,2,12,.90)}" +
-      "#pz-box{min-width:20rem;max-width:90vw;padding:1.2rem 1.4rem;border:3px solid currentColor;" +
-      "border-radius:8px;background:rgba(10,8,26,.98);display:flex;flex-direction:column;gap:.5rem}" +
-      "#pz-title{text-align:center;letter-spacing:.18em;opacity:.85;margin-bottom:.4rem}" +
-      "#pz-box .pz-item{position:relative;display:block;width:100%}" +
-      "#pz-box .pz-item.sel{outline:4px solid #ff2e63;outline-offset:3px;border-radius:6px}" +
-      "#pz-hint{text-align:center;opacity:.5;font-size:.72rem;letter-spacing:.08em;margin-top:.5rem}";
+      "#pz-box{width:min(92vw,max(620px,34vmax));max-height:94vh;overflow:hidden;padding:1rem 1.4rem;" +
+      "border:4px solid #ffd23f;border-radius:10px;background:rgba(12,10,32,.98);display:flex;" +
+      "flex-direction:column;gap:var(--pz-gap,10px);font-family:'DejaVu Sans Mono',Consolas,Menlo,monospace;font-weight:700}" +
+      "#pz-title{text-align:center;letter-spacing:.14em;color:#fff;font-size:calc(var(--pz-font,24px) * 1.25);margin:.2em 0 .3em}" +
+      "#pz-box .pz-item{display:block;width:100%;box-sizing:border-box;text-align:center;color:#fff;" +
+      "font-size:var(--pz-font,24px);line-height:1.2;padding:var(--pz-pad,.5em) .5em;background:#1b1650;" +
+      "border:3px solid #6b63ff;border-radius:8px;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" +
+      "#pz-box .pz-item.sel{border-color:#ffd23f;color:#ffd23f;background:#3a2fb0;box-shadow:0 0 0 3px #ffd23f}" +
+      "#pz-hint{text-align:center;color:#d9d3ff;font-size:max(14px,calc(var(--pz-font,24px) * .6));margin-top:.3em;letter-spacing:.04em}";
     document.head.appendChild(st);
   }
 
@@ -590,31 +613,31 @@
   function drawPause(items) {
     var box = document.getElementById("pz-box");
     box.innerHTML = "";
+    // Size the text so title + every row + hint fit the screen height: about
+    // pinball's size for the short menu, smaller for the 14-game list.
+    var n = items.length;
+    var vmax = Math.max(window.innerWidth, window.innerHeight);
+    var font = Math.max(14, Math.min(Math.max(28, vmax * 0.017), (window.innerHeight * 0.82) / (n * 2.45 + 3.2)));
+    box.style.setProperty("--pz-font", Math.round(font) + "px");
+    box.style.setProperty("--pz-gap", Math.round(font * 0.4) + "px");
+    box.style.setProperty("--pz-pad", n > 9 ? ".3em" : ".5em");
     var t = document.createElement("div");
     t.id = "pz-title";
-    t.textContent = pauseView === "games" ? "TABLE ARCADE" : "PAUSED";
+    t.textContent = pauseView === "games" ? "TABLE ARCADE" : pauseView === "tables" ? "PINBALL TABLE" : "PAUSED";
     box.appendChild(t);
     for (var i = 0; i < items.length; i++) {
-      var src = items[i].el;
-      var c = src ? src.cloneNode(true) : fakeButton(items[i].label);
-      c.removeAttribute("id");
-      c.removeAttribute("href");              // never navigate from a clone
-      // cloneNode copies inline styles, and the originals are display:none
-      // while play is running — without this every redraw produced an
-      // invisible row, so the highlighted entry vanished as you moved off it.
-      c.style.display = "";
-      c.style.visibility = "";
-      // Always our label: the clone brings the game's own wording otherwise
-      // (NEW MATCH, RULES), which is the inconsistency this menu removes.
+      var c = document.createElement("div");
+      c.className = "pz-item" + (i === pauseIdx ? " sel" : "");
       c.textContent = items[i].label;
-      c.className = (c.className || "") + " pz-item" + (i === pauseIdx ? " sel" : "");
       box.appendChild(c);
     }
     var h = document.createElement("div");
     h.id = "pz-hint";
-    h.textContent = pauseView === "games" ? "D-PAD move  ·  A play  ·  B back"
-                                         : "D-PAD move  ·  A select  ·  B or START resume";
+    h.textContent = pauseView === "main" ? "D-PAD MOVE · A SELECT · B OR START RESUME"
+                                         : "D-PAD MOVE · A SELECT · B BACK";
     box.appendChild(h);
+    var selEl = box.querySelector(".pz-item.sel");
+    if (selEl && selEl.scrollIntoView) selEl.scrollIntoView({ block: "nearest" });
   }
 
   // One line in the kiosk log per session describing what the pads actually
@@ -705,13 +728,8 @@
       pauseEl.appendChild(box);
       document.body.appendChild(pauseEl);
     }
-    // Inherit the game's own colour so the panel belongs to it.
-    var probe = document.querySelector(".controls button, .px");
-    if (probe) {
-      var cs = getComputedStyle(probe);
-      document.getElementById("pz-box").style.color = cs.color;
-      document.getElementById("pz-box").style.fontFamily = cs.fontFamily;
-    }
+    // No longer takes the game's own colour: in Drop Four that made pink text
+    // under a pinkish highlight that could hardly be seen (2026-09-29).
     paused = true;
     pauseView = "main";
     pauseIdx = 0;
@@ -782,6 +800,196 @@
   var primLock = [false, false];
   var navHeld = false;
 
+  // ---- line-by-line menus -------------------------------------------------
+  // Every panel (setup screen, rules, game over, Sea Strike's hand-over and
+  // fleet placement) is read as a stack of LINES, top to bottom:
+  //   group  a line of choices ([data-group]): left/right changes the choice
+  //   btns   buttons side by side: left/right moves along, A presses
+  //   grid   Sea Strike's placement grid: the D-pad moves a square cursor
+  // Up/down always goes to the next line, so none can be skipped. The old
+  // nearest-button-in-that-direction rule jumped over Sea Strike's CPU LEVEL,
+  // whose three narrow buttons sat further off-line than the row below it
+  // (Glen, 2026-09-29: "each line of choosing should be a level").
+  var menuLine = new WeakMap(), menuCol = 0, menuCell = { r: 0, c: 0 }, lastPanel = null;
+
+  function menuLines(panel) {
+    var btns = menuButtons().map(function (b) { return b.el; });
+    var items = [], groups = [];
+    for (var i = 0; i < btns.length; i++) {
+      var el = btns[i], g = el.closest("[data-group]");
+      if (g && panel.contains(g)) {
+        if (groups.indexOf(g) === -1) {
+          groups.push(g);
+          var gb = Array.prototype.filter.call(g.querySelectorAll("button"), function (x) {
+            return !x.disabled && shown(x);
+          });
+          items.push({ kind: "group", el: g, box: g.closest(".grp") || g, btns: gb });
+        }
+      } else {
+        items.push({ kind: "btn", el: el });
+      }
+    }
+    var grid = panel.querySelector("canvas.grid");
+    if (grid && shown(grid)) items.push({ kind: "grid", el: grid });
+    for (var k = 0; k < items.length; k++) {
+      var r = (items[k].box || items[k].el).getBoundingClientRect();
+      items[k].top = r.top; items[k].cx = r.left + r.width / 2; items[k].h = r.height;
+    }
+    items.sort(function (x, y) { return (x.top - y.top) || (x.cx - y.cx); });
+    var lines = [];
+    for (var m = 0; m < items.length; m++) {
+      var it = items[m], last = lines[lines.length - 1];
+      if (it.kind === "btn" && last && last.kind === "btns" &&
+          Math.abs(it.top - last.top) < Math.max(8, it.h * 0.5)) {
+        last.btns.push(it.el);
+      } else if (it.kind === "btn") {
+        lines.push({ kind: "btns", btns: [it.el], top: it.top });
+      } else {
+        lines.push(it);
+      }
+    }
+    for (var n = 0; n < lines.length; n++) {
+      if (lines[n].kind === "btns") {
+        lines[n].btns.sort(function (x, y) {
+          return x.getBoundingClientRect().left - y.getBoundingClientRect().left;
+        });
+      }
+    }
+    return lines;
+  }
+
+  function centreX(el) { var r = el.getBoundingClientRect(); return r.left + r.width / 2; }
+
+  function cellEl() {
+    var c = document.getElementById("pz-cell");
+    if (!c) {
+      c = document.createElement("div");
+      c.id = "pz-cell";
+      c.style.cssText = "position:fixed;pointer-events:none;z-index:99998;border:4px solid #ffd23f;" +
+        "box-shadow:0 0 0 2px #000,0 0 14px #ffd23f;border-radius:4px;box-sizing:border-box";
+      document.body.appendChild(c);
+    }
+    return c;
+  }
+  function hideCell() { var c = document.getElementById("pz-cell"); if (c) c.hidden = true; }
+  // The grid canvas has a label row and column, so 11 x 11 squares with the
+  // playable 10 x 10 starting at (1,1). Points are in screen space: when the
+  // box is turned for the far player the game flips them itself.
+  function cellPoint(grid) {
+    var r = grid.getBoundingClientRect(), cw = r.width / 11, ch = r.height / 11;
+    return { x: r.left + (menuCell.c + 1.5) * cw, y: r.top + (menuCell.r + 1.5) * ch,
+             l: r.left + (menuCell.c + 1) * cw, t: r.top + (menuCell.r + 1) * ch, w: cw, h: ch };
+  }
+  function pointAt(grid, type) {
+    var p = cellPoint(grid);
+    grid.dispatchEvent(new PointerEvent(type, { clientX: p.x, clientY: p.y, bubbles: true,
+      cancelable: true, pointerType: "mouse", pointerId: 1, isPrimary: true, button: 0 }));
+  }
+
+  function menuTick(p1, p2) {
+    var panel = activePanel();
+    if (!panel) { hideCell(); return; }
+    var lines = menuLines(panel);
+    if (!lines.length) { hideCell(); return; }
+    var li = menuLine.has(panel) ? menuLine.get(panel) : 0;
+    if (panel !== lastPanel) { menuCol = 0; lastPanel = panel; }
+    if (li >= lines.length) li = lines.length - 1;
+    var line = lines[li];
+
+    // A panel turned to face the far player reads upside down to the pad.
+    var flip = panel.classList.contains("flip") || !!panel.querySelector(".box.flip, .sheet.flip");
+    var dir = null;
+    [p1, p2].forEach(function (p) {
+      if (!p || dir) return;
+      if (p.up) dir = "up"; else if (p.down) dir = "down";
+      else if (p.left) dir = "left"; else if (p.right) dir = "right";
+    });
+    if (dir && flip) dir = { up: "down", down: "up", left: "right", right: "left" }[dir];
+
+    if (dir && !navHeld) {
+      navHeld = true;
+      var fromX = line.kind === "btns" ? centreX(line.btns[Math.min(menuCol, line.btns.length - 1)]) : null;
+      if (line.kind === "grid" && (dir === "left" || dir === "right" ||
+          (dir === "up" && menuCell.r > 0) || (dir === "down" && menuCell.r < 9))) {
+        if (dir === "left") menuCell.c = Math.max(0, menuCell.c - 1);
+        if (dir === "right") menuCell.c = Math.min(9, menuCell.c + 1);
+        if (dir === "up") menuCell.r--;
+        if (dir === "down") menuCell.r++;
+        pointAt(line.el, "pointermove");
+      } else if (dir === "up" || dir === "down") {
+        var ni = Math.max(0, Math.min(lines.length - 1, li + (dir === "down" ? 1 : -1)));
+        if (ni !== li) {
+          li = ni; line = lines[li];
+          if (line.kind === "btns") {
+            // Land on the button nearest where you came from.
+            var best = 0, bd = 1e9;
+            for (var q = 0; q < line.btns.length; q++) {
+              var d = fromX == null ? q : Math.abs(centreX(line.btns[q]) - fromX);
+              if (d < bd) { bd = d; best = q; }
+            }
+            menuCol = best;
+          }
+          if (line.kind === "grid") { menuCell.r = dir === "down" ? 0 : 9; pointAt(line.el, "pointermove"); }
+        }
+      } else if (line.kind === "group") {
+        var cur = -1;
+        for (var g = 0; g < line.btns.length; g++) {
+          if (line.btns[g].getAttribute("aria-pressed") === "true") cur = g;
+        }
+        var nx = Math.max(0, Math.min(line.btns.length - 1, cur + (dir === "right" ? 1 : -1)));
+        if (nx !== cur && line.btns[nx]) line.btns[nx].click();
+      } else if (line.kind === "btns") {
+        menuCol = Math.max(0, Math.min(line.btns.length - 1, menuCol + (dir === "right" ? 1 : -1)));
+      }
+    }
+    if (!dir) navHeld = false;
+    menuLine.set(panel, li);
+    if (line.kind === "btns" && menuCol >= line.btns.length) menuCol = line.btns.length - 1;
+
+    // Paint: the whole line for choices, the button for buttons, a square on
+    // the grid.
+    var old = document.querySelectorAll(".cab-focus");
+    for (var o = 0; o < old.length; o++) old[o].classList.remove("cab-focus");
+    var target = line.kind === "group" ? line.box : line.kind === "btns" ? line.btns[menuCol] : null;
+    if (target) {
+      target.classList.add("cab-focus");
+      if (target.scrollIntoView) target.scrollIntoView({ block: "nearest" });
+      hideCell();
+    } else if (line.kind === "grid") {
+      var cp = cellPoint(line.el), ce = cellEl();
+      ce.hidden = false;
+      ce.style.left = cp.l + "px"; ce.style.top = cp.t + "px";
+      ce.style.width = cp.w + "px"; ce.style.height = cp.h + "px";
+    }
+
+    for (var pi = 0; pi < 2; pi++) {
+      var pq = pi === 0 ? p1 : p2;
+      if (!pq) continue;
+      if (pq.a && !prevA[pi]) {
+        primLock[pi] = true;
+        if (line.kind === "btns") line.btns[menuCol].click();
+        else if (line.kind === "grid") pointAt(line.el, "pointerdown");
+      } else if (pq.b && !pq.a && !prevB[pi]) {
+        primLock[pi] = true;
+        var rot = line.kind === "grid" && document.getElementById("bRotate");
+        if (rot) { rot.click(); pointAt(line.el, "pointermove"); }
+        else {
+          // B backs out of a panel that has a way back (the rules' BACK TO
+          // GAME) and does nothing elsewhere, so a stray B on a setup screen
+          // cannot throw anyone out of the game.
+          var all = panel.querySelectorAll("button");
+          for (var bk = 0; bk < all.length; bk++) {
+            if (/^(BACK TO GAME|BACK|CLOSE|DONE|GOT IT|OK)$/i.test((all[bk].textContent || "").trim()) && shown(all[bk])) {
+              all[bk].click();
+              break;
+            }
+          }
+        }
+      }
+      prevA[pi] = pq.a; prevB[pi] = pq.b; prevPrim[pi] = pq.prim;
+    }
+  }
+
   function tick() {
     var gs = pads();
     var p1 = readPad(gs[0]), p2 = readPad(gs[1]);
@@ -851,7 +1059,7 @@
         prevPrim[pk] = pv.prim;
         // B backs out: to the main list from the games list, else back to play.
         if (bEdge) {
-          if (pauseView === "games") { pauseView = "main"; pauseIdx = 0; drawPause(pauseItems()); }
+          if (pauseView !== "main") { pauseView = "main"; pauseIdx = 0; drawPause(pauseItems()); }
           else { primLock[pk] = true; closePause(true); }
           break;
         }
@@ -866,6 +1074,13 @@
         primLock[pk] = true;
         if (it.act === "switch") { pauseView = "games"; pauseIdx = 0; drawPause(pauseItems()); break; }
         if (it.act === "back")   { pauseView = "main";  pauseIdx = 0; drawPause(pauseItems()); break; }
+        if (it.act === "tables") { pauseView = "tables"; pauseIdx = 0; drawPause(pauseItems()); break; }
+        if (it.act === "table") {
+          releaseAll();
+          try { localStorage.setItem("pinball.table", it.id); } catch (e) {}
+          location.search = "?table=" + it.id;
+          break;
+        }
         if (it.act === "play") {
           // Same origin, same rotation, same browser — just go there.
           releaseAll();
@@ -924,46 +1139,12 @@
     if (!leaving) {
       var onMenu = setupVisible();
       if (onMenu) {
-        // Menus: move focus between buttons. No pointer.
+        // Menus: line by line, the way Word Forge's own setup screen works.
         releaseAll();
         if (dot) dot.hidden = true;
-        var list = menuButtons();
-        if (list.length) {
-          if (navIdx >= list.length) navIdx = 0;
-          var drv = p1 || p2, alt = p2;
-          var dir = null;
-          [drv, alt].forEach(function (p) {
-            if (!p || dir) return;
-            if (p.up) dir = "up"; else if (p.down) dir = "down";
-            else if (p.left) dir = "left"; else if (p.right) dir = "right";
-          });
-          if (dir && !navHeld) { navMove(list, dir); navHeld = true; }
-          if (!dir) navHeld = false;
-          paintFocus(list);
-          var both1 = [p1, p2];
-          for (var q = 0; q < 2; q++) {
-            var pq = both1[q];
-            if (!pq) continue;
-            // A selects. B backs out of a panel that has a way back (the rules'
-            // BACK TO GAME) and does nothing elsewhere, so a stray B on a setup
-            // screen cannot throw anyone out of the game.
-            if (pq.a && !prevA[q] && list[navIdx]) {
-              list[navIdx].el.click();
-              primLock[q] = true;
-            } else if (pq.b && !pq.a && !prevB[q]) {
-              for (var bk = 0; bk < list.length; bk++) {
-                if (/^(BACK TO GAME|BACK|CLOSE|DONE|GOT IT|OK)$/i.test((list[bk].el.textContent || "").trim())) {
-                  list[bk].el.click();
-                  primLock[q] = true;
-                  break;
-                }
-              }
-            }
-            prevA[q] = pq.a; prevB[q] = pq.b;
-            prevPrim[q] = pq.prim;
-          }
-        }
+        menuTick(p1, p2);
       } else if (IS_BOARD) {
+        hideCell();
         // Boards: a cursor is unavoidable (the board is a canvas), but it
         // steps square to square rather than gliding like a mouse.
         releaseAll();
