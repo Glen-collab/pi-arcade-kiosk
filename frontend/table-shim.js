@@ -85,6 +85,7 @@
     if (!code) return;
     if (!!heldKeys[code] === !!isDown) return;        // edge only, no repeats
     heldKeys[code] = isDown;
+    if (PADLOG) padlog({ key: code, down: !!isDown });
     document.dispatchEvent(new KeyboardEvent(isDown ? "keydown" : "keyup", {
       code: code, key: keyFor(code), bubbles: true, cancelable: true
     }));
@@ -94,10 +95,33 @@
     for (var c in heldKeys) if (heldKeys[c]) setKey(c, false);
   }
 
+  // ?padlog=1 sends every raw button change and every key the shim synthesises
+  // to the server log, for "this button does the wrong thing" reports that a
+  // simulated pad cannot reproduce.
+  var PADLOG = /[?&]padlog=1/.test(location.search);
+  function padlog(d) {
+    d.padlog = GAME;
+    try { fetch("/api/shim-log", { method: "POST", headers: { "Content-Type": "application/json" },
+                                   body: JSON.stringify(d) }); } catch (e) {}
+  }
+  var lastRaw = {};
+  function logRaw(list) {
+    for (var i = 0; i < list.length; i++) {
+      var gp = list[i], down = [];
+      for (var b = 0; b < gp.buttons.length; b++) if (gp.buttons[b] && gp.buttons[b].pressed) down.push(b);
+      var sig = down.join(",") + "|" + Array.prototype.map.call(gp.axes, function (v) { return Math.round(v); }).join(",");
+      if (lastRaw[gp.index] !== sig) {
+        lastRaw[gp.index] = sig;
+        padlog({ pad: gp.index, id: gp.id, nes: isNesPad(gp), buttons: down, axes: sig.split("|")[1] });
+      }
+    }
+  }
+
   function pads() {
     var list = navigator.getGamepads ? navigator.getGamepads() : [];
     var out = [];
     for (var i = 0; i < list.length; i++) if (list[i] && list[i].connected) out.push(list[i]);
+    if (PADLOG) logRaw(out);
     return out;
   }
 
@@ -132,10 +156,10 @@
     return null;
   }
 
-  // The USB NES pads (081f:e401) number their buttons differently from the
+  // The USB NES pads (081f:e401, and 0810:e501 found 2026-09-29) number their buttons differently from the
   // SNES clones: A=1 B=0 Select=8 Start=9, D-pad on axes 0/1 (read off one on
   // Windows 2026-09-28). There is no X or Y, so A and B are the whole game.
-  function isNesPad(gp) { return /081f.*e401/i.test(gp.id || ""); }
+  function isNesPad(gp) { return /081f.*e401|0810.*e501/i.test(gp.id || ""); }
 
   function readPad(gp) {
     if (!gp) return null;
