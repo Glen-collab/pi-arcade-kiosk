@@ -27,13 +27,16 @@
   var BOARD_GAMES = ["chess", "checkers", "drop-four", "sea-strike"];
   var IS_BOARD = BOARD_GAMES.indexOf(GAME) !== -1;
 
-  // Per-game key maps, transcribed from the project's own README.
-  // Player 1 = amber (bottom edge), player 2 = cyan (top edge).
-  // prim = A button, sec = B button, l/r = shoulders where a game needs more.
+  // Per-game key maps. Every game plays on the D-pad, A, B and A+B together —
+  // two buttons like an old arcade stick, so an NES pad works as well as the
+  // SNES ones (Glen, 2026-09-28). Player 1 = amber (bottom edge), player 2 =
+  // cyan (top edge). a / b / ab name the key each press sends; when both are
+  // held, ab is sent INSTEAD of a and b if the game has one. bMod re-points the
+  // D-pad while B alone is held, for the one game with more to steer.
   var MAPS = {
-    "light-racer": {
-      1: { up: "KeyW", down: "KeyS", left: "KeyA", right: "KeyD", prim: "Space" },
-      2: { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight", prim: "Enter" }
+    "light-racer": {   // A or B boosts
+      1: { up: "KeyW", down: "KeyS", left: "KeyA", right: "KeyD", a: "Space", b: "Space" },
+      2: { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight", a: "Enter", b: "Enter" }
     },
     "serpent-duel": {
       1: { up: "KeyW", down: "KeyS", left: "KeyA", right: "KeyD" },
@@ -43,27 +46,25 @@
       1: { left: "KeyA", right: "KeyD" },
       2: { left: "ArrowLeft", right: "ArrowRight" }
     },
-    "twin-siege": {
-      1: { left: "KeyA", right: "KeyD", up: "KeyW", prim: "Space" },
-      2: { left: "ArrowLeft", right: "ArrowRight", down: "ArrowDown", prim: "Enter" }
+    "twin-siege": {    // A or B fires
+      1: { left: "KeyA", right: "KeyD", up: "KeyW", a: "Space", b: "Space" },
+      2: { left: "ArrowLeft", right: "ArrowRight", down: "ArrowDown", a: "Enter", b: "Enter" }
     },
-    "orbit-duel": {
-      1: { left: "KeyA", right: "KeyD", up: "KeyW", prim: "Space", sec: "KeyE" },
-      2: { left: "ArrowLeft", right: "ArrowRight", up: "ArrowUp", prim: "Enter", sec: "ShiftRight" }
+    "orbit-duel": {    // A fire, B thrust (as does up), A+B hyperspace
+      1: { left: "KeyA", right: "KeyD", up: "KeyW", a: "Space", b: "KeyW", ab: "KeyE" },
+      2: { left: "ArrowLeft", right: "ArrowRight", up: "ArrowUp", a: "Enter", b: "ArrowUp", ab: "ShiftRight" }
     },
-    "iron-treads": {
-      1: { up: "KeyW", down: "KeyS", left: "KeyA", right: "KeyD", prim: "Space" },
-      2: { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight", prim: "Enter" }
+    "iron-treads": {   // A or B fires
+      1: { up: "KeyW", down: "KeyS", left: "KeyA", right: "KeyD", a: "Space", b: "Space" },
+      2: { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight", a: "Enter", b: "Enter" }
     },
     "banana-barrage": {
-      // Aim needs both directions, and "sec" is one button — Y and X both
-      // produce it, so aiming only ever went one way. Bound separately now.
-      // Walk on the D-pad, angle on up/down, power on the shoulders, throw on
-      // A or B, aim on Y and X.
-      1: { left: "KeyA", right: "KeyD", up: "KeyW", down: "KeyS",
-           prim: "Space", y: "KeyQ", x: "KeyE", l: "KeyR", r: "KeyF" },
-      2: { left: "ArrowLeft", right: "ArrowRight", up: "ArrowUp", down: "ArrowDown",
-           prim: "Enter", y: "Comma", x: "Period", l: "PageUp", r: "PageDown" }
+      // D-pad walks (left/right) and sets the angle (up/down). Hold B and the
+      // same D-pad aims (left/right) and sets the power (up/down). A throws.
+      1: { left: "KeyA", right: "KeyD", up: "KeyW", down: "KeyS", a: "Space",
+           bMod: { left: "KeyQ", right: "KeyE", up: "KeyR", down: "KeyF" } },
+      2: { left: "ArrowLeft", right: "ArrowRight", up: "ArrowUp", down: "ArrowDown", a: "Enter",
+           bMod: { left: "Comma", right: "Period", up: "PageUp", down: "PageDown" } }
     }
   };
 
@@ -145,6 +146,8 @@
       return {
         up:    (ax[1] || 0) < -DEAD, down:  (ax[1] || 0) > DEAD,
         left:  (ax[0] || 0) < -DEAD, right: (ax[0] || 0) > DEAD,
+        a:     pressed(1),
+        b:     pressed(0),
         prim:  pressed(0) || pressed(1),   // A or B, as on the SNES pads
         sec:   pressed(0) && pressed(1),   // the third button is A+B together
         y: false, x: false, l: false, r: false,
@@ -157,6 +160,8 @@
       down:   (ax[1] || 0) >  DEAD || pressed(13) || !!hat.down,
       left:   (ax[0] || 0) < -DEAD || pressed(14) || !!hat.left,
       right:  (ax[0] || 0) >  DEAD || pressed(15) || !!hat.right,
+      a:      pressed(1) || pressed(0),   // A (X counts too: same side of the pad)
+      b:      pressed(2) || pressed(3),   // B (and Y)
       prim:   pressed(2) || pressed(1),   // B or A
       sec:    pressed(3) || pressed(0),   // Y or X, for games wanting one extra
       y:      pressed(3),                 // separately, for games wanting two
@@ -907,26 +912,40 @@
         if (dot) dot.hidden = true;
         var map = MAPS[GAME];
         if (map) {
+          // Worked out as a whole first: two presses can name the same key
+          // (A and B both fire), and setting it per press would let the
+          // released one cancel the held one.
+          var want = {};
+          function hold(code, on) { if (code) want[code] = want[code] || !!on; }
           var players = [[1, p1], [2, p2]];
           for (var j = 0; j < players.length; j++) {
             var n = players[j][0], pp = players[j][1], m = map[n];
-            if (!m || !pp) continue;
-            setKey(m.up, pp.up);
-            setKey(m.down, pp.down);
-            setKey(m.left, pp.left);
-            setKey(m.right, pp.right);
+            if (!m) continue;
+            var dirs = ["up", "down", "left", "right"];
+            if (!pp) {
+              for (var d0 = 0; d0 < 4; d0++) hold(m[dirs[d0]], false);
+              hold(m.a, false); hold(m.b, false); hold(m.ab, false);
+              if (m.bMod) for (var d1 = 0; d1 < 4; d1++) hold(m.bMod[dirs[d1]], false);
+              continue;
+            }
             // The button that dismissed the setup screen is usually still
             // held when play begins, and it is the same button the game reads
             // as its action — so the banana was thrown the instant the game
             // started. Held over from the menu, it counts as released until
             // the player actually lets go.
-            setKey(m.prim, pp.prim && !primLock[j]);
-            setKey(m.sec, pp.sec);
-            setKey(m.y, pp.y);
-            setKey(m.x, pp.x);
-            setKey(m.l, pp.l);
-            setKey(m.r, pp.r);
+            var pa = pp.a && !primLock[j], pb = pp.b && !primLock[j];
+            var both = pa && pb && !!m.ab;
+            var shifted = !!m.bMod && pb && !pa;
+            for (var d = 0; d < 4; d++) {
+              var dn = dirs[d];
+              hold(m[dn], pp[dn] && !shifted);
+              if (m.bMod) hold(m.bMod[dn], pp[dn] && shifted);
+            }
+            hold(m.a, pa && !both);
+            hold(m.b, pb && !both && !m.bMod);
+            hold(m.ab, both);
           }
+          for (var code in want) setKey(code, want[code]);
         }
       }
     }
