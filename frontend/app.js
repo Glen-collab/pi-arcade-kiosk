@@ -849,7 +849,19 @@ async function readStatus() {
   catch { return { playing: false, pad_idle_s: null }; }
 }
 
+// One check at a time, and none while a demo launch is in flight. A check
+// that landed while the old demo was still closing saw "nothing playing",
+// took it for someone quitting and dropped the demo mark, so the next demo
+// was treated as a real game and never rotated: Yoshi's Island (SuperFX) was
+// slow to close, and Mario All-Stars then sat for 34 hours (2026-09-28).
+let attractBusy = false;
 setInterval(async () => {
+  if (attractBusy) return;
+  attractBusy = true;
+  try { await attractTick(); } finally { attractBusy = false; }
+}, 5000);
+
+async function attractTick() {
   const st = await readStatus();
   const playing = !!st.playing;
   // User just exited a game (or attract demo) — start a fresh idle
@@ -892,6 +904,6 @@ setInterval(async () => {
       ),
     });
   } catch {}
-}, 5000);
+}
 
 load();
