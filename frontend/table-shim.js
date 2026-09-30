@@ -927,6 +927,9 @@
       seaWrap = wrap;
       if (wrap.scrollIntoView) wrap.scrollIntoView({ block: "center", behavior: "smooth" });
     }
+    // The CPU's turn: the live grid is your own waters, taking its shot. No
+    // cursor there; it read as yours (Glen, 2026-09-30).
+    if (wrap.classList.contains("cpu")) { hideCell(); return; }
     // The far player's board is turned to face them, so their pad reads flipped.
     var flip = wrap.classList.contains("flip");
     var dir = null;
