@@ -899,15 +899,62 @@
   // The grid canvas has a label row and column, so 11 x 11 squares with the
   // playable 10 x 10 starting at (1,1). Points are in screen space: when the
   // box is turned for the far player the game flips them itself.
-  function cellPoint(grid) {
+  function cellPoint(grid, cell) {
+    cell = cell || menuCell;
     var r = grid.getBoundingClientRect(), cw = r.width / 11, ch = r.height / 11;
-    return { x: r.left + (menuCell.c + 1.5) * cw, y: r.top + (menuCell.r + 1.5) * ch,
-             l: r.left + (menuCell.c + 1) * cw, t: r.top + (menuCell.r + 1) * ch, w: cw, h: ch };
+    return { x: r.left + (cell.c + 1.5) * cw, y: r.top + (cell.r + 1.5) * ch,
+             l: r.left + (cell.c + 1) * cw, t: r.top + (cell.r + 1) * ch, w: cw, h: ch };
   }
-  function pointAt(grid, type) {
-    var p = cellPoint(grid);
+  function pointAt(grid, type, cell) {
+    var p = cellPoint(grid, cell);
     grid.dispatchEvent(new PointerEvent(type, { clientX: p.x, clientY: p.y, bubbles: true,
       cancelable: true, pointerType: "mouse", pointerId: 1, isPrimary: true, button: 0 }));
+  }
+
+  // Sea Strike, firing. It has two boards and fires on whichever target grid
+  // is live (.gridWrap.active); the generic board cursor sat on the top board
+  // (your own waters, where a shot does nothing), could not reach the live
+  // one, and as a fixed-position dot drifted off the squares when the page
+  // scrolled (Glen, 2026-09-30). Same yellow square as fleet placement,
+  // re-measured every frame; A fires. The live grid is scrolled into view
+  // when the turn passes, for screens shorter than both boards.
+  var seaCell = { r: 4, c: 4 }, seaWrap = null;
+  function seaTick(p1, p2) {
+    var wrap = document.querySelector(".gridWrap.active");
+    var grid = wrap && wrap.querySelector("canvas.grid");
+    if (!grid || !shown(grid)) { hideCell(); seaWrap = null; return; }
+    if (wrap !== seaWrap) {
+      seaWrap = wrap;
+      if (wrap.scrollIntoView) wrap.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+    // The far player's board is turned to face them, so their pad reads flipped.
+    var flip = wrap.classList.contains("flip");
+    var dir = null;
+    [p1, p2].forEach(function (p) {
+      if (!p || dir) return;
+      if (p.up) dir = "up"; else if (p.down) dir = "down";
+      else if (p.left) dir = "left"; else if (p.right) dir = "right";
+    });
+    if (dir && flip) dir = { up: "down", down: "up", left: "right", right: "left" }[dir];
+    if (dir && !navHeld) {
+      navHeld = true;
+      if (dir === "up") seaCell.r = Math.max(0, seaCell.r - 1);
+      if (dir === "down") seaCell.r = Math.min(9, seaCell.r + 1);
+      if (dir === "left") seaCell.c = Math.max(0, seaCell.c - 1);
+      if (dir === "right") seaCell.c = Math.min(9, seaCell.c + 1);
+      pointAt(grid, "pointermove", seaCell);
+    }
+    if (!dir) navHeld = false;
+    var cp = cellPoint(grid, seaCell), ce = cellEl();
+    ce.hidden = false;
+    ce.style.left = cp.l + "px"; ce.style.top = cp.t + "px";
+    ce.style.width = cp.w + "px"; ce.style.height = cp.h + "px";
+    for (var pi = 0; pi < 2; pi++) {
+      var pq = pi === 0 ? p1 : p2;
+      if (!pq) continue;
+      if (pq.a && !prevA[pi] && !primLock[pi]) { primLock[pi] = true; pointAt(grid, "pointerdown", seaCell); }
+      prevA[pi] = pq.a; prevB[pi] = pq.b; prevPrim[pi] = pq.prim;
+    }
   }
 
   function menuTick(p1, p2) {
@@ -1167,6 +1214,10 @@
         releaseAll();
         if (dot) dot.hidden = true;
         menuTick(p1, p2);
+      } else if (GAME === "sea-strike") {
+        releaseAll();
+        if (dot) dot.hidden = true;
+        seaTick(p1, p2);
       } else if (IS_BOARD) {
         hideCell();
         // Boards: a cursor is unavoidable (the board is a canvas), but it
