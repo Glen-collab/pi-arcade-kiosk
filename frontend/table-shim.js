@@ -58,6 +58,10 @@
       1: { up: "KeyW", down: "KeyS", left: "KeyA", right: "KeyD", a: "Space", b: "Space" },
       2: { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight", a: "Enter", b: "Enter" }
     },
+    "falcon-gunners": { // D-pad aims, A fires the quad lasers, B a torpedo
+      1: { up: "KeyW", down: "KeyS", left: "KeyA", right: "KeyD", a: "Space", b: "KeyQ" },
+      2: { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight", a: "Enter", b: "ShiftRight" }
+    },
     "banana-barrage": {
       // D-pad walks (left/right) and sets the angle (up/down). Hold B and the
       // same D-pad aims (left/right) and sets the power (up/down). A throws.
