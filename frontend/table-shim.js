@@ -58,6 +58,11 @@
       1: { up: "KeyW", down: "KeyS", left: "KeyA", right: "KeyD", a: "Space", b: "Space" },
       2: { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight", a: "Enter", b: "Enter" }
     },
+    "star-trek": {     // Tactical: D-pad aims, A phasers, B torpedo, A+B console (1P)
+                       // Engineering: D-pad picks an answer, A confirms, B calls the officer
+      1: { up: "KeyW", down: "KeyS", left: "KeyA", right: "KeyD", a: "Space", b: "KeyQ", ab: "KeyE" },
+      2: { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight", a: "Enter", b: "ShiftRight" }
+    },
     "falcon-gunners": { // D-pad aims, A fires the quad lasers, B a torpedo
       1: { up: "KeyW", down: "KeyS", left: "KeyA", right: "KeyD", a: "Space", b: "KeyQ" },
       2: { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight", a: "Enter", b: "ShiftRight" }
